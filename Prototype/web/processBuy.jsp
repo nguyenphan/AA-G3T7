@@ -24,7 +24,23 @@
         session.setAttribute("stock",stock);
         String tempBidPrice = request.getParameter("bidprice").trim();
         session.setAttribute("bidprice", tempBidPrice);
-        int bidPrice = Integer.parseInt(tempBidPrice);
+        
+        int bidPrice = 0;
+        
+        try {
+            bidPrice = Integer.parseInt(tempBidPrice);
+            
+            if (bidPrice < 0) {
+                %>
+                <jsp:forward page = "buyFail.jsp?error=The amount cannot < 0 !" />
+                <%
+            }
+            
+        }catch (Exception e) {
+            %>
+            <jsp:forward page = "buyFail.jsp?error=The amount you are entering is not a numeric type. Please try again!" />
+            <%
+        }
 
         // submit the buy request
         Bid newBid = new Bid(stock, bidPrice, userId);
@@ -35,7 +51,7 @@
           <jsp:forward page = "buySuccess.jsp" />
         <%
         } else { %>
-          <jsp:forward page = "buyFail.jsp" />
+          <jsp:forward page = "buyFail.jsp?error=The following buy order has been REJECTED because your credit limit has been breached" />
         <%
         }
         %>

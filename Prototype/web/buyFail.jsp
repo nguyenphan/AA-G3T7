@@ -36,7 +36,11 @@
                 </thead>
                 <tbody>
                     <tr>
-                      <td> The following buy order has been REJECTED because your credit limit has been breached</td>
+                      <td> 
+                          <%
+                          String errorMsg = request.getParameter("error").trim();
+                          %><%=errorMsg%>
+                          </td>
                     </tr>
                     <tr>
                         <td>User ID</td>
