@@ -5,6 +5,7 @@
 --%>
 <%@page import="Database.*" %>
 <%@page import="Entity.*" %>
+<%@page import="aa.*" %>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
@@ -51,7 +52,7 @@
         
         <%
             //test add ask
-            Ask ask = new Ask("sarah",1,5000);
+            Ask ask = new Ask("sarah",5000,"smu");
             AskDAO askDAO = new AskDAO();
             askDAO.add(ask);
         %>
