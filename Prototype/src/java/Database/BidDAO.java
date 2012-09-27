@@ -4,7 +4,7 @@
  */
 package Database;
 
-import aa.Bid;
+import Entity.Bid;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

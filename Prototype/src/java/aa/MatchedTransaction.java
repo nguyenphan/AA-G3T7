@@ -1,5 +1,7 @@
 package aa;
 
+import Entity.Bid;
+import Entity.Ask;
 import java.util.Date;
 
 // represents a matched bid and ask
