@@ -44,7 +44,8 @@ public class ExchangeBean {
         unfulfilledBids.clear();
 
         // reset all credit limits of users
-        creditRemaining.clear();
+        TraderDAO traderDAO = new TraderDAO();
+        traderDAO.resetCreditsForAllTraders();
     }
 
     // returns a String of unfulfilled bids for a particular stock

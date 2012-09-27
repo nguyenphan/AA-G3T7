@@ -17,6 +17,8 @@ import java.sql.SQLException;
  */
 public class TraderDAO {
 
+    final static int DEFAULT_CREDIT_LIMIT = 1000000;
+    
     Connection connection = null;
     PreparedStatement ptmt = null;
     ResultSet resultSet = null;
@@ -60,6 +62,21 @@ public class TraderDAO {
         }
         
     }
+    
+    public void resetCreditsForAllTraders(){
+        try{
+            String queryString = "UPDATE trader SET credit=?";
+            connection = getConnection();
+            ptmt = connection.prepareStatement(queryString);
+            ptmt.setInt(1, DEFAULT_CREDIT_LIMIT);
+            ptmt.executeUpdate();
+        } catch (Exception e) {
+           e.printStackTrace();
+        } finally {
+            
+        }
+    
+    }
 
     public Trader getTraderWithUsername(String username) {
         try {
@@ -81,4 +98,6 @@ public class TraderDAO {
 
         return null;
     }
+    
+    
 }
