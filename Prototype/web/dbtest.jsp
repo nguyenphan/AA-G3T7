@@ -36,7 +36,7 @@
             //test add trader to database
             Trader sarah = traderDAO.getTraderWithUsername("sarah");
                 if(sarah==null){
-                    traderDAO.add(new Trader("sarah",1000000.00));
+                    traderDAO.add(new Trader("sarah",1000000));
                     sarah = traderDAO.getTraderWithUsername("sarah");
                 }
 

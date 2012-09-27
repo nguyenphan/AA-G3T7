@@ -36,7 +36,7 @@ public class TraderDAO {
             connection = getConnection();
             ptmt = connection.prepareStatement(queryString);
             ptmt.setString(1, trader.getUsername());
-            ptmt.setDouble(2, 1000000.00);
+            ptmt.setInt(2, trader.getCredit());
             ptmt.executeUpdate();
         } catch (Exception e) {
            e.printStackTrace();
@@ -50,7 +50,7 @@ public class TraderDAO {
             String queryString = "UPDATE trader SET credit=? WHERE username=?";
             connection = getConnection();
             ptmt = connection.prepareStatement(queryString);
-            ptmt.setDouble(1, trader.getCredit());
+            ptmt.setInt(1, trader.getCredit());
             ptmt.setString(2, trader.getUsername());
             ptmt.executeUpdate();
         } catch (Exception e) {
@@ -70,7 +70,7 @@ public class TraderDAO {
             resultSet = ptmt.executeQuery();
             
             while (resultSet.next()) {
-                return new Trader(username, resultSet.getFloat("credit"));
+                return new Trader(username, resultSet.getInt("credit"));
             }
                 
         } catch (Exception e) {

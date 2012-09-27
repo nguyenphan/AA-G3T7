@@ -9,10 +9,18 @@ package Entity;
  * @author ptlenguyen
  */
 public class Trader {
-    String username;
-    double credit;
+    
+    final static int DEFAULT_CREDIT_LIMIT = 1000000;
+    
+    private String username;
+    private int credit;
 
-    public Trader(String username, double credit) {
+    public Trader(String username) {
+        this.username = username;
+        this.credit = DEFAULT_CREDIT_LIMIT;
+    }
+    
+    public Trader(String username, int credit) {
         this.username = username;
         this.credit = credit;
     }
@@ -21,11 +29,11 @@ public class Trader {
         return username;
     }
 
-    public double getCredit() {
+    public int getCredit() {
         return credit;
     }
 
-    public void deductCredit(double amt){
+    public void deductCredit(int amt){
         this.credit -=amt;
     }
     
