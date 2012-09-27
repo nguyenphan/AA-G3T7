@@ -3,7 +3,7 @@
     Created on : Aug 30, 2012, 11:07:00 AM
     Author     : the saboteur
 --%>
-<%@ page import="aa.*" %>
+<%@ page import="Entity.*" %>
 <jsp:useBean id="exchangeBean" scope="application" class="aa.ExchangeBean" />
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
