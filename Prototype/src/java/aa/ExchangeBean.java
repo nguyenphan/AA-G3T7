@@ -1,12 +1,10 @@
 package aa;
 
-import Entity.Bid;
-import Entity.Ask;
 import java.io.*;
 import java.util.*;
 
-import Database.TraderDAO;
-import Entity.Trader;
+import Database.*;
+import Entity.*;
 
 public class ExchangeBean {
 
@@ -232,6 +230,11 @@ public class ExchangeBean {
             return false;
         }
 
+        //save bid to database
+        BidDAO bidDAO = new BidDAO();
+        bidDAO.add(newBid);
+        
+        
         // step 1: insert new bid into unfulfilledBids
         unfulfilledBids.add(newBid);
 
@@ -275,6 +278,10 @@ public class ExchangeBean {
 
     // call this method immediatley when a new ask (selling order) comes in
     public void placeNewAskAndAttemptMatch(Ask newAsk) {
+        //save ask to database
+        AskDAO askDAO = new AskDAO();
+        askDAO.add(newAsk);
+        
         // step 1: insert new ask into unfulfilledAsks
         unfulfilledAsks.add(newAsk);
 
