@@ -32,7 +32,7 @@ public class StockDAO {
 
             Stock s = null;
             while (resultSet.next()) {
-                s = new Stock(resultSet.getInt("stockID"), name);
+                s = new Stock(name);
             }
             return s;
 

@@ -9,16 +9,10 @@ package Entity;
  * @author Shi Ling Tai
  */
 public class Stock {
-    private int id;
     private String name;
 
-    public Stock(int id, String name) {
-        this.id = id;
+    public Stock(String name) {
         this.name = name;
-    }
-
-    public int getId() {
-        return id;
     }
 
     public String getName() {
@@ -27,7 +21,7 @@ public class Stock {
 
     @Override
     public String toString() {
-        return "Stock{" + "id=" + id + ", name=" + name + '}';
+        return "Stock{" + ", name=" + name + '}';
     }
     
 }
