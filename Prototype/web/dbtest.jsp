@@ -30,5 +30,15 @@
         <%=nus%><br/>
         <%=ntu%><br/>
         
+        <%
+        Trader sarah = traderDAO.getTraderWithUsername("sarah");
+            if(sarah==null){
+                traderDAO.add(new Trader("sarah",1000000.00));
+                sarah = traderDAO.getTraderWithUsername("sarah");
+            }
+        %>
+        
+        <%=sarah%><br/>
+        
     </body>
 </html>

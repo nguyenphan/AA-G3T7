@@ -31,6 +31,18 @@ public class TraderDAO {
     }
 
     public void add(Trader trader) {
+        try{
+            String queryString = "INSERT INTO trader VALUE(?,?)";
+            connection = getConnection();
+            ptmt = connection.prepareStatement(queryString);
+            ptmt.setString(1, trader.getUsername());
+            ptmt.setDouble(2, 1000000.00);
+            ptmt.executeUpdate();
+        } catch (Exception e) {
+           e.printStackTrace();
+        } finally {
+            
+        }
     }
 
     public void update(Trader trader) {
@@ -44,15 +56,10 @@ public class TraderDAO {
             ptmt.setString(1, username);
             resultSet = ptmt.executeQuery();
             
-            double credit = 0;
-            
             while (resultSet.next()) {
-                credit = resultSet.getFloat("credit");
+                return new Trader(username, resultSet.getFloat("credit"));
             }
-            
-            Trader aTrader = new Trader(username, credit);
                 
-            return aTrader;
         } catch (Exception e) {
            e.printStackTrace();
         } finally {
