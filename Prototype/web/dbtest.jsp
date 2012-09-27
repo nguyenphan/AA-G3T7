@@ -53,7 +53,7 @@
         
         <%
             //test add ask
-            Ask ask = new Ask("sarah",5000,"smu");
+            Ask ask = new Ask("smu",10,"sarah");
             AskDAO askDAO = new AskDAO();
             askDAO.add(ask);
         %>
