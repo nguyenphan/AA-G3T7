@@ -33,22 +33,30 @@
         <%=ntu%><br/>
         
         <%
-        //test add trader to database
-        Trader sarah = traderDAO.getTraderWithUsername("sarah");
-            if(sarah==null){
-                traderDAO.add(new Trader("sarah",1000000.00));
-                sarah = traderDAO.getTraderWithUsername("sarah");
-            }
-        
-        //test update trader in database
-        sarah.deductCredit(5000);
-        traderDAO.update(sarah);
-        sarah = traderDAO.getTraderWithUsername("sarah");
+            //test add trader to database
+            Trader sarah = traderDAO.getTraderWithUsername("sarah");
+                if(sarah==null){
+                    traderDAO.add(new Trader("sarah",1000000.00));
+                    sarah = traderDAO.getTraderWithUsername("sarah");
+                }
+
+            //test update trader in database
+            sarah.deductCredit(5000);
+            traderDAO.update(sarah);
+            sarah = traderDAO.getTraderWithUsername("sarah");
         
         %>
         
         <%=sarah%><br/>
         
+        <%
+            //test add ask
+            Ask ask = new Ask("sarah",1,5000);
+            AskDAO askDAO = new AskDAO();
+            askDAO.add(ask);
+        %>
+        
+        <%=ask%>
         
     </body>
 </html>
