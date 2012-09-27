@@ -224,7 +224,8 @@ public class ExchangeBean {
     // this method returns false if this buy order has been rejected because of a credit limit breach
     // it returns true if the bid has been successfully added
     public boolean placeNewBidAndAttemptMatch(Bid newBid) {
-        // step 0: check if this bid is valid based on the buyer's credit limit
+        
+        //chekc if buyer has enough credit
         boolean okToContinue = validateCreditLimit(newBid);
         if (!okToContinue) {
             return false;
@@ -233,47 +234,39 @@ public class ExchangeBean {
         //save bid to database
         BidDAO bidDAO = new BidDAO();
         bidDAO.add(newBid);
+        System.out.println(newBid);
         
+        //get lowest ask for stock
+        AskDAO askDAO = new AskDAO();
+        Ask lowestAsk = askDAO.getLowestAskForStock(newBid.getStock());
         
-        // step 1: insert new bid into unfulfilledBids
-        unfulfilledBids.add(newBid);
-
-        // step 2: check if there is any unfulfilled asks (sell orders) for the new bid's stock. if not, just return
-        // count keeps track of the number of unfulfilled asks for this stock
-        int count = 0;
-        for (int i = 0; i < unfulfilledAsks.size(); i++) {
-            if (unfulfilledAsks.get(i).getStock().equals(newBid.getStock())) {
-                count++;
-            }
+        //no match, return immedietely
+        if(lowestAsk==null || lowestAsk.getPrice()>newBid.getPrice()){
+            return true;
         }
-        if (count == 0) {
-            return true; // no unfulfilled asks of the same stock
-        }
-
-        // step 3: identify the current/highest bid in unfulfilledBids of the same stock
-        Bid highestBid = getHighestBid(newBid.getStock());
-
-        // step 4: identify the current/lowest ask in unfulfilledAsks of the same stock
-        Ask lowestAsk = getLowestAsk(newBid.getStock());
-
-        // step 5: check if there is a match.
-        // A match happens if the highest bid is bigger or equal to the lowest ask
-        if (highestBid.getPrice() >= lowestAsk.getPrice()) {
-            // a match is found!
-            unfulfilledBids.remove(highestBid);
-            unfulfilledAsks.remove(lowestAsk);
-            // this is a BUYING trade - the transaction happens at the higest bid's timestamp, and the transaction price happens at the lowest ask
-            MatchedTransaction match = new MatchedTransaction(highestBid, lowestAsk, highestBid.getDate(), lowestAsk.getPrice());
-            matchedTransactions.add(match);
-
-            // to be included here: inform Back Office Server of match
-            // to be done in v1.0
-
-            updateLatestPrice(match);
-            logMatchedTransactions();
-        }
-
-        return true; // this bid is acknowledged
+      
+        //matched:
+        
+        //create transaction
+        //this is a buying transaction, so transaction price is price of ask
+        MatchedTransaction mt = new MatchedTransaction(newBid,lowestAsk,newBid.getDate(),lowestAsk.getPrice());
+        MatchedTransactionDAO mtDAO = new MatchedTransactionDAO();
+        mtDAO.add(mt);  //transaction id will be generated here
+        
+        //update transactionID in ask and bid
+        newBid.setTransactionId(mt.getTransactionId());
+        bidDAO.update(newBid);
+        lowestAsk.setTransactionID(mt.getTransactionId());
+        askDAO.update(lowestAsk);
+        
+        //log
+        logMatchedTransactions();
+        
+        //update latest price
+        updateLatestPrice(mt);
+        
+        //acknowledge bid
+        return true;
     }
 
     // call this method immediatley when a new ask (selling order) comes in

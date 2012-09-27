@@ -5,6 +5,7 @@
 package Database;
 
 import java.sql.Connection;
+import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -32,12 +33,20 @@ public class AskDAO {
             String queryString = "INSERT INTO ask "
                     + "SET username=?,stockName=?,price=?,order_date=?";
             connection = getConnection();
-            ptmt = connection.prepareStatement(queryString);
+            ptmt = connection.prepareStatement(queryString, Statement.RETURN_GENERATED_KEYS);
             ptmt.setString(1, ask.getUserId());
             ptmt.setString(2, ask.getStock());
             ptmt.setDouble(3, ask.getPrice());
             ptmt.setTimestamp(4, ask.getTimestamp());
             ptmt.executeUpdate();
+            
+            ResultSet generatedKeys = ptmt.getGeneratedKeys();
+            if(generatedKeys.next()){
+                ask.setAskId(generatedKeys.getInt(1));
+            }else{
+                throw new SQLException("Failed to create Ask, no generated ID obtained.");
+            }
+            
         } catch (Exception e) {
            e.printStackTrace();
         } finally {
@@ -111,5 +120,62 @@ public class AskDAO {
         }
         
         return allAsks;
+    }
+    
+    public ArrayList<Ask> getUnfulfilledAsksForStock(String stockName) {
+        ArrayList unfulfilledAsks = new ArrayList();
+        
+        try {
+            String query = "SELECT * FROM ask WHERE transactionID IS NULL AND stockName=?";
+            connection = getConnection();
+            ptmt = connection.prepareStatement(query);
+            ptmt.setString(1, stockName);
+            
+            resultSet = ptmt.executeQuery();
+            
+            while (resultSet.next()) {
+                Ask ask = new Ask(resultSet.getInt("askID"), 
+                        resultSet.getString("username"), 
+                        stockName,
+                        resultSet.getInt("price"), 
+                        resultSet.getTimestamp("order_date"), 
+                        resultSet.getInt("transactionID"));
+                unfulfilledAsks.add(ask);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return unfulfilledAsks;
+    }
+    
+    public Ask getLowestAskForStock(String stockName){
+        
+        try {
+            String query = "SELECT * FROM ask WHERE stockName=? AND order_date=("
+                    + "SELECT min(order_date) FROM ask WHERE stockName=? AND price=("
+                    + "SELECT min(price) FROM ask WHERE stockName=? AND transactionID IS NULL))";
+            
+            connection = getConnection();
+            ptmt = connection.prepareStatement(query);
+            ptmt.setString(1, stockName);
+            ptmt.setString(2, stockName);
+            ptmt.setString(3, stockName);
+            resultSet = ptmt.executeQuery();
+            
+            while (resultSet.next()) {
+                return new Ask(resultSet.getInt("askID"), 
+                        resultSet.getString("username"), 
+                        stockName,
+                        resultSet.getInt("price"), 
+                        resultSet.getTimestamp("order_date"), 
+                        resultSet.getInt("transactionID"));
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return null;
     }
 }

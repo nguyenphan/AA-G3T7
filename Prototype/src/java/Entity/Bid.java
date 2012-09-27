@@ -30,7 +30,12 @@ public class Bid {
         this.timeStamp = timestamp;
         this.transactionId = transactionId;
     }
+    
     // getters
+    public int getBidId() {
+        return bidId;
+    }
+    
     public String getStock() {
         return stock;
     }
@@ -47,9 +52,6 @@ public class Bid {
         return new Date(this.timeStamp.getTime());
     }
 
-    public int getBidId() {
-        return bidId;
-    }
 
     public Timestamp getTimeStamp() {
         return timeStamp;
@@ -60,12 +62,17 @@ public class Bid {
     }
     
     //setter
+    public void setBidId(int bidId){
+        this.bidId = bidId;
+    }
+    
     public void setTransactionId(int transactionId) {
         this.transactionId = transactionId;
     }
-    
-    // toString
+
+    @Override
     public String toString() {
-        return "stock: " + stock + ", price: " + price + ", userId: " + userId + ", date: " + this.getDate();
+        return "Bid{" + "bidId=" + bidId + ", stock=" + stock + ", price=" + price + ", userId=" + userId + ", timeStamp=" + timeStamp + ", transactionId=" + transactionId + '}';
     }
+    
 }

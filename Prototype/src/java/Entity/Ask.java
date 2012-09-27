@@ -65,6 +65,10 @@ public class Ask {
     
     // setter
 
+    public void setAskId(int askId) {
+        this.askId = askId;
+    }
+    
     public void setTransactionID(int transactionID) {
         this.transactionID = transactionID;
     }

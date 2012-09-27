@@ -1,21 +1,18 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package Database;
 
 import Entity.Bid;
+
 import java.sql.Connection;
+import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+
 import java.util.ArrayList;
 
-/**
- *
- * @author ptlenguyen
- */
 public class BidDAO {
+
     Connection connection = null;
     PreparedStatement ptmt = null;
     ResultSet resultSet = null;
@@ -34,12 +31,20 @@ public class BidDAO {
             String queryString = "INSERT INTO bid "
                     + "SET username=?,stockName=?,price=?,order_date=?";
             connection = getConnection();
-            ptmt = connection.prepareStatement(queryString);
+            ptmt = connection.prepareStatement(queryString, Statement.RETURN_GENERATED_KEYS);
             ptmt.setString(1, bid.getUserId());
             ptmt.setString(2, bid.getStock());
             ptmt.setInt(3, bid.getPrice());
             ptmt.setTimestamp(4, bid.getTimeStamp());
             ptmt.executeUpdate();
+            
+            ResultSet generatedKeys = ptmt.getGeneratedKeys();
+            if(generatedKeys.next()){
+                bid.setBidId(generatedKeys.getInt(1));
+            }else{
+                throw new SQLException("Failed to create Bid, no generated ID obtained.");
+            }
+            
         } catch (Exception e) {
            e.printStackTrace();
         } finally {
@@ -57,7 +62,6 @@ public class BidDAO {
             ptmt.executeUpdate();
         } catch (Exception e) {
            e.printStackTrace();
-           
            return false;
         } finally {
             
