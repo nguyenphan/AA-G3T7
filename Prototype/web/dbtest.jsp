@@ -16,9 +16,11 @@
     <body>
         <h1>Hello World!</h1>
         <%
+            //test retrieve trader from database
             TraderDAO traderDAO = new TraderDAO();
             Trader trader = traderDAO.getTraderWithUsername("ptlenguyen");
             
+            //test retrieve stock from database
             StockDAO stockDAO = new StockDAO();
             Stock smu = stockDAO.getStockWithName("SMU");
             Stock nus = stockDAO.getStockWithName("NUS");
@@ -31,14 +33,22 @@
         <%=ntu%><br/>
         
         <%
+        //test add trader to database
         Trader sarah = traderDAO.getTraderWithUsername("sarah");
             if(sarah==null){
                 traderDAO.add(new Trader("sarah",1000000.00));
                 sarah = traderDAO.getTraderWithUsername("sarah");
             }
+        
+        //test update trader in database
+        sarah.deductCredit(5000);
+        traderDAO.update(sarah);
+        sarah = traderDAO.getTraderWithUsername("sarah");
+        
         %>
         
         <%=sarah%><br/>
+        
         
     </body>
 </html>

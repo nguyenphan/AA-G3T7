@@ -25,14 +25,10 @@ public class Trader {
         return credit;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void deductCredit(double amt){
+        this.credit -=amt;
     }
-
-    public void setCredit(double credit) {
-        this.credit = credit;
-    }
-
+    
     @Override
     public String toString() {
         return "Trader{" + "username=" + username + ", credit=" + credit + '}';

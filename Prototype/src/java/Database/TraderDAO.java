@@ -46,6 +46,19 @@ public class TraderDAO {
     }
 
     public void update(Trader trader) {
+        try{
+            String queryString = "UPDATE trader SET credit=? WHERE username=?";
+            connection = getConnection();
+            ptmt = connection.prepareStatement(queryString);
+            ptmt.setDouble(1, trader.getCredit());
+            ptmt.setString(2, trader.getUsername());
+            ptmt.executeUpdate();
+        } catch (Exception e) {
+           e.printStackTrace();
+        } finally {
+            
+        }
+        
     }
 
     public Trader getTraderWithUsername(String username) {
