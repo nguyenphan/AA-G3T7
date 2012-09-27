@@ -26,12 +26,6 @@ public class ExchangeBean {
     private int latestPriceForSmu = -1;
     private int latestPriceForNus = -1;
     private int latestPriceForNtu = -1;
-    // keeps track of the remaining credit limits of each buyer. This should be
-    // checked every time a buy order is submitted. Buy orders that breach the
-    // credit limit should be rejected and logged
-    // The key for this Hashtable is the user ID of the buyer, and the corresponding value is the REMAINING credit limit
-    // the remaining credit limit should not go below 0 under any circumstance!
-    private Hashtable<String, Integer> creditRemaining = new Hashtable<String, Integer>();
 
     // this method is called once at the end of each trading day. It can be called manually, or by a timed daemon
     // this is a good chance to "clean up" everything to get ready for the next trading day
@@ -215,15 +209,16 @@ public class ExchangeBean {
     // returns a string of HTML table rows code containing the list of user IDs and their remaining credits
     // this method is used by viewOrders.jsp for debugging purposes
     public String getAllCreditRemainingForDisplay() {
+        
         String returnString = "";
-
-        Enumeration items = creditRemaining.keys();
-
-        while (items.hasMoreElements()) {
-            String key = (String) items.nextElement();
-            int value = creditRemaining.get(key);
-            returnString += "<tr><td>" + key + "</td><td>" + value + "</td></tr>";
+        
+        TraderDAO traderDAO = new TraderDAO();
+        ArrayList<Trader> traders = traderDAO.getAllTraders();
+        
+        for(Trader t: traders){
+            returnString += "<tr><td>" + t.getUsername() + "</td><td>" + t.getCredit() + "</td></tr>";
         }
+        
         return returnString;
     }
 

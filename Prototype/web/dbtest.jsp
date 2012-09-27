@@ -6,6 +6,7 @@
 <%@page import="Database.*" %>
 <%@page import="Entity.*" %>
 <%@page import="aa.*" %>
+<jsp:useBean id="exchangeBean" scope="application" class="aa.ExchangeBean" />
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
@@ -58,6 +59,11 @@
         %>
         
         <%=ask%>
+        
+        <!--Display remaining credits for all users-->
+        <table border="1">
+        <%=exchangeBean.getAllCreditRemainingForDisplay()%>
+        </table>
         
     </body>
 </html>
