@@ -17,11 +17,18 @@
         <h1>Hello World!</h1>
         <%
             TraderDAO traderDAO = new TraderDAO();
-            Trader t = traderDAO.getTraderWithUsername("ptlenguyen");
+            Trader trader = traderDAO.getTraderWithUsername("ptlenguyen");
             
+            StockDAO stockDAO = new StockDAO();
+            Stock smu = stockDAO.getStockWithName("SMU");
+            Stock nus = stockDAO.getStockWithName("NUS");
+            Stock ntu = stockDAO.getStockWithName("NTU");
         %>
         
-        <%=t%>
+        <%=trader%><br/>
+        <%=smu%><br/>
+        <%=nus%><br/>
+        <%=ntu%><br/>
         
     </body>
 </html>
