@@ -99,7 +99,7 @@ public class BidDAO {
         return allBids;
     }
     
-    public ArrayList<Bid> getAllAskForUsername(String username) {
+    public ArrayList<Bid> getAllBidForUsername(String username) {
         ArrayList allBids = new ArrayList();
         
         try {
@@ -124,6 +124,33 @@ public class BidDAO {
         }
         
         return allBids;
+    }
+    
+     public ArrayList<Bid> getUnfulfilledBidsForStock(String stockName) {
+        ArrayList unfulfilledAsks = new ArrayList();
+        
+        try {
+            String query = "SELECT * FROM bid WHERE transactionID IS NULL AND stockName=?";
+            connection = getConnection();
+            ptmt = connection.prepareStatement(query);
+            ptmt.setString(1, stockName);
+            
+            resultSet = ptmt.executeQuery();
+            
+            while (resultSet.next()) {
+                Bid ask = new Bid(resultSet.getInt("bidID"), 
+                        resultSet.getString("username"), 
+                        stockName,
+                        resultSet.getInt("price"), 
+                        resultSet.getLong("order_date"),
+                        resultSet.getInt("transactionID"));
+                unfulfilledAsks.add(ask);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return unfulfilledAsks;
     }
     
     public Bid getHighestBidForStock(String stockName){
@@ -152,6 +179,20 @@ public class BidDAO {
         }
         
         return null;
+    }
+    
+    public void clearUnfulfilledBids(){
+        try {
+            String query = "DELETE FROM bid WHERE transactionID IS NULL";
+            
+            connection = getConnection();
+            ptmt = connection.prepareStatement(query);
+            ptmt.executeUpdate();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
     }
     
 }

@@ -13,13 +13,11 @@ public class ExchangeBean {
     private final String REJECTED_BUY_ORDERS_LOG_FILE = "c:\\temp\\rejected.log";
     // used to calculate remaining credit available for buyers
     private final int DAILY_CREDIT_LIMIT_FOR_BUYERS = 1000000;
-    // used for keeping track of unfulfilled asks and bids in the system.
-    // once asks or bids are matched, they must be removed from these arraylists.
-    private ArrayList<Ask> unfulfilledAsks = new ArrayList<Ask>();
-    private ArrayList<Bid> unfulfilledBids = new ArrayList<Bid>();
+    
     // used to keep track of all matched transactions (asks/bids) in the system
     // matchedTransactions is cleaned once the records are written to the log file successfully
     private ArrayList<MatchedTransaction> matchedTransactions = new ArrayList<MatchedTransaction>();
+    
     // keeps track of the latest price for each of the 3 stocks
     private int latestPriceForSmu = -1;
     private int latestPriceForNus = -1;
@@ -34,8 +32,11 @@ public class ExchangeBean {
         latestPriceForNtu = -1;
 
         // dump all unfulfilled buy and sell orders
-        unfulfilledAsks.clear();
-        unfulfilledBids.clear();
+        BidDAO bidDAO = new BidDAO();
+        bidDAO.clearUnfulfilledBids();
+        
+        AskDAO askDAO = new AskDAO();
+        askDAO.clearUnfulfilledAsks();
 
         // reset all credit limits of users
         TraderDAO traderDAO = new TraderDAO();
@@ -46,28 +47,28 @@ public class ExchangeBean {
     // returns an empty string if no such bid
     // bids are separated by <br> for display on HTML page
     public String getUnfulfilledBidsForDisplay(String stock) {
-        String returnString = "";
-        for (int i = 0; i < unfulfilledBids.size(); i++) {
-            Bid bid = unfulfilledBids.get(i);
-            if (bid.getStock().equals(stock)) {
-                returnString += bid.toString() + "<br />";
-            }
+        BidDAO bidDAO = new BidDAO();
+        ArrayList<Bid> unfulfilledBids = bidDAO.getUnfulfilledBidsForStock(stock);
+        
+        StringBuilder returnString = new StringBuilder();
+        for(Bid bid: unfulfilledBids){
+            returnString.append(bid.toString() + "<br />");
         }
-        return returnString;
+        return returnString.toString();
     }
 
     // returns a String of unfulfilled asks for a particular stock
     // returns an empty string if no such ask
     // asks are separated by <br> for display on HTML page
     public String getUnfulfilledAsks(String stock) {
-        String returnString = "";
-        for (int i = 0; i < unfulfilledAsks.size(); i++) {
-            Ask ask = unfulfilledAsks.get(i);
-            if (ask.getStock().equals(stock)) {
-                returnString += ask.toString() + "<br />";
-            }
+        AskDAO askDAO = new AskDAO();
+        ArrayList<Ask> unfulfilledAsks = askDAO.getUnfulfilledAsksForStock(stock);
+        
+        StringBuilder returnString = new StringBuilder();
+        for(Ask ask: unfulfilledAsks){
+            returnString.append(ask.toString() + "<br />");
         }
-        return returnString;
+        return returnString.toString();
     }
 
     // returns the highest bid for a particular stock
@@ -84,25 +85,8 @@ public class ExchangeBean {
     // retrieve unfulfiled current (highest) bid for a particular stock
     // returns null if there is no unfulfiled bid for this stock
     private Bid getHighestBid(String stock) {
-        Bid highestBid = new Bid(null, 0, null);
-        for (int i = 0; i < unfulfilledBids.size(); i++) {
-            Bid bid = unfulfilledBids.get(i);
-            if (bid.getStock().equals(stock) && bid.getPrice() >= highestBid.getPrice()) {
-                // if there are 2 bids of the same amount, the earlier one is considered the highest bid
-                if (bid.getPrice() == highestBid.getPrice()) {
-                    // compare dates
-                    if (bid.getDate().getTime() < highestBid.getDate().getTime()) {
-                        highestBid = bid;
-                    }
-                } else {
-                    highestBid = bid;
-                }
-            }
-        }
-        if (highestBid.getUserId() == null) {
-            return null; // there's no unfulfilled bid at all!
-        }
-        return highestBid;
+        BidDAO bidDAO = new BidDAO();
+        return bidDAO.getHighestBidForStock(stock);
     }
 
     // returns the lowest ask for a particular stock
@@ -119,25 +103,8 @@ public class ExchangeBean {
     // retrieve unfulfiled current (lowest) ask for a particular stock
     // returns null if there is no unfulfiled asks for this stock
     private Ask getLowestAsk(String stock) {
-        Ask lowestAsk = new Ask(null, Integer.MAX_VALUE, null);
-        for (int i = 0; i < unfulfilledAsks.size(); i++) {
-            Ask ask = unfulfilledAsks.get(i);
-            if (ask.getStock().equals(stock) && ask.getPrice() <= lowestAsk.getPrice()) {
-                // if there are 2 asks of the same ask amount, the earlier one is considered the highest ask
-                if (ask.getPrice() == lowestAsk.getPrice()) {
-                    // compare dates
-                    if (ask.getDate().getTime() < lowestAsk.getDate().getTime()) {
-                        lowestAsk = ask;
-                    }
-                } else {
-                    lowestAsk = ask;
-                }
-            }
-        }
-        if (lowestAsk.getUserId() == null) {
-            return null; // there's no unfulfilled asks at all!
-        }
-        return lowestAsk;
+        AskDAO askDAO = new AskDAO();
+        return askDAO.getLowestAskForStock(stock);
     }
 
     // check if a buyer is eligible to place an order based on his credit limit

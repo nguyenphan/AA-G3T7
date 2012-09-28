@@ -72,6 +72,6 @@ public class Ask {
 
     @Override
     public String toString() {
-        return "Ask{" + "askId=" + askId + ", stock=" + stock + ", price=" + price + ", userId=" + userId + ", transactionID=" + transactionID + ", time=" + time + '}';
+        return "Ask{" + "askId=" + askId + ", stock=" + stock + ", price=" + price + ", userId=" + userId + ", time=" + time + ", transactionID=" + transactionID + '}';
     }
 }

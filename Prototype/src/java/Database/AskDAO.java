@@ -185,4 +185,19 @@ public class AskDAO {
         
         return null;
     }
+    
+    public void clearUnfulfilledAsks(){
+        try {
+            String query = "DELETE FROM ask WHERE transactionID IS NULL";
+            
+            connection = getConnection();
+            ptmt = connection.prepareStatement(query);
+            ptmt.executeUpdate();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+    }
+    
 }
