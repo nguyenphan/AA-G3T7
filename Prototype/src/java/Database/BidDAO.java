@@ -7,7 +7,6 @@ import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 
 import java.util.ArrayList;
 
@@ -35,7 +34,7 @@ public class BidDAO {
             ptmt.setString(1, bid.getUserId());
             ptmt.setString(2, bid.getStock());
             ptmt.setInt(3, bid.getPrice());
-            ptmt.setTimestamp(4, bid.getTimeStamp());
+            ptmt.setLong(4, bid.getTime());
             ptmt.executeUpdate();
             
             ResultSet generatedKeys = ptmt.getGeneratedKeys();
@@ -82,8 +81,12 @@ public class BidDAO {
             resultSet = ptmt.executeQuery();
             
             while (resultSet.next()) {
-                Bid aBid = new Bid(resultSet.getInt("bidID"), resultSet.getString("username"), resultSet.getString("stockName"), 
-                        resultSet.getInt("price"), resultSet.getTimestamp("order_date"), resultSet.getInt("transactionID"));
+                Bid aBid = new Bid(resultSet.getInt("bidID"), 
+                        resultSet.getString("username"), 
+                        resultSet.getString("stockName"), 
+                        resultSet.getInt("price"), 
+                        resultSet.getLong("order_date"),
+                        resultSet.getInt("transactionID"));
                 allBids.add(aBid);
             }
             
@@ -108,8 +111,12 @@ public class BidDAO {
             resultSet = ptmt.executeQuery();
             
             while (resultSet.next()) {
-                Bid aBid = new Bid(resultSet.getInt("bidID"), resultSet.getString("username"), resultSet.getString("stockName"), 
-                        resultSet.getInt("price"), resultSet.getTimestamp("order_date"), resultSet.getInt("transactionID"));
+                Bid aBid = new Bid(resultSet.getInt("bidID"), 
+                        resultSet.getString("username"), 
+                        resultSet.getString("stockName"), 
+                        resultSet.getInt("price"), 
+                        resultSet.getLong("order_date"),
+                        resultSet.getInt("transactionID"));
                 allBids.add(aBid);
             }
         } catch (Exception e) {
@@ -118,4 +125,33 @@ public class BidDAO {
         
         return allBids;
     }
+    
+    public Bid getHighestBidForStock(String stockName){
+        try {
+            String query = "SELECT * FROM bid "
+                    + "WHERE transactionID IS NULL AND stockName=?"
+                    + "ORDER by price DESC, order_date ASC "
+                    + "LIMIT 1;";
+            
+            connection = getConnection();
+            ptmt = connection.prepareStatement(query);
+            ptmt.setString(1, stockName);
+            resultSet = ptmt.executeQuery();
+            
+            while (resultSet.next()) {
+                return new Bid(resultSet.getInt("bidID"), 
+                        resultSet.getString("username"), 
+                        stockName,
+                        resultSet.getInt("price"), 
+                        resultSet.getLong("order_date"),
+                        resultSet.getInt("transactionID"));
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        return null;
+    }
+    
 }

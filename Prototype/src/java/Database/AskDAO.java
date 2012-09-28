@@ -11,7 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import Entity.Ask;
-import java.util.*;
+import java.util.ArrayList;
 
 public class AskDAO {
     
@@ -37,7 +37,7 @@ public class AskDAO {
             ptmt.setString(1, ask.getUserId());
             ptmt.setString(2, ask.getStock());
             ptmt.setDouble(3, ask.getPrice());
-            ptmt.setTimestamp(4, ask.getTimestamp());
+            ptmt.setLong(4, ask.getTime());
             ptmt.executeUpdate();
             
             ResultSet generatedKeys = ptmt.getGeneratedKeys();
@@ -85,8 +85,12 @@ public class AskDAO {
             resultSet = ptmt.executeQuery();
             
             while (resultSet.next()) {
-                Ask anAsk = new Ask(resultSet.getInt("askID"), resultSet.getString("username"), resultSet.getString("stockName"), 
-                        resultSet.getInt("price"), resultSet.getTimestamp("order_date"), resultSet.getInt("transactionID"));
+                Ask anAsk = new Ask(resultSet.getInt("askID"), 
+                        resultSet.getString("username"), 
+                        resultSet.getString("stockName"), 
+                        resultSet.getInt("price"), 
+                        resultSet.getLong("order_date"),
+                        resultSet.getInt("transactionID"));
                 allAsks.add(anAsk);
             }
             
@@ -111,8 +115,12 @@ public class AskDAO {
             resultSet = ptmt.executeQuery();
             
             while (resultSet.next()) {
-                Ask anAsk = new Ask(resultSet.getInt("askID"), resultSet.getString("username"), resultSet.getString("stockName"), 
-                        resultSet.getInt("price"), resultSet.getTimestamp("order_date"), resultSet.getInt("transactionID"));
+                Ask anAsk = new Ask(resultSet.getInt("askID"), 
+                        resultSet.getString("username"),
+                        resultSet.getString("stockName"), 
+                        resultSet.getInt("price"), 
+                        resultSet.getLong("order_date"),
+                        resultSet.getInt("transactionID"));
                 allAsks.add(anAsk);
             }
         } catch (Exception e) {
@@ -138,7 +146,7 @@ public class AskDAO {
                         resultSet.getString("username"), 
                         stockName,
                         resultSet.getInt("price"), 
-                        resultSet.getTimestamp("order_date"), 
+                        resultSet.getLong("order_date"),
                         resultSet.getInt("transactionID"));
                 unfulfilledAsks.add(ask);
             }
@@ -152,15 +160,14 @@ public class AskDAO {
     public Ask getLowestAskForStock(String stockName){
         
         try {
-            String query = "SELECT * FROM ask WHERE stockName=? AND order_date=("
-                    + "SELECT min(order_date) FROM ask WHERE stockName=? AND price=("
-                    + "SELECT min(price) FROM ask WHERE stockName=? AND transactionID IS NULL))";
+            String query = "SELECT * FROM ask "
+                    + "WHERE transactionID IS NULL AND stockName=?"
+                    + "ORDER by price ASC, order_date ASC "
+                    + "LIMIT 1;";
             
             connection = getConnection();
             ptmt = connection.prepareStatement(query);
             ptmt.setString(1, stockName);
-            ptmt.setString(2, stockName);
-            ptmt.setString(3, stockName);
             resultSet = ptmt.executeQuery();
             
             while (resultSet.next()) {
@@ -168,7 +175,7 @@ public class AskDAO {
                         resultSet.getString("username"), 
                         stockName,
                         resultSet.getInt("price"), 
-                        resultSet.getTimestamp("order_date"), 
+                        resultSet.getLong("order_date"),
                         resultSet.getInt("transactionID"));
             }
             

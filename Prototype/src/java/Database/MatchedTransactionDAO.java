@@ -7,6 +7,7 @@ import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 
 import java.util.ArrayList;
 
@@ -34,7 +35,7 @@ public class MatchedTransactionDAO {
             ptmt.setInt(1, mt.getBidID());
             ptmt.setInt(2, mt.getAskID());
             ptmt.setInt(3, mt.getPrice());
-            ptmt.setTimestamp(4, mt.getTimestamp());
+            ptmt.setTime(4, new Time(mt.getDate().getTime()));
             ptmt.executeUpdate();
             
             ResultSet generatedKeys = ptmt.getGeneratedKeys();

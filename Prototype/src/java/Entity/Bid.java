@@ -1,7 +1,6 @@
 package Entity;
 
 import java.util.Date;
-import java.sql.Timestamp;
 
 // represents a bid (in a buy order)
 public class Bid {
@@ -10,7 +9,7 @@ public class Bid {
     private String stock;
     private int price; // bid price
     private String userId; // user who made this buy order
-    private Timestamp timeStamp;
+    private long time;
     private int transactionId;
 
     // constructor
@@ -18,16 +17,15 @@ public class Bid {
         this.stock = stock;
         this.price = price;
         this.userId = userId;
-        Date now = new Date();
-        this.timeStamp = new Timestamp(now.getTime());
+        this.time = (new Date()).getTime();
     }
     //for retrieving from DB
-    public Bid(int bidId, String username, String stock, int price, Timestamp timestamp, int transactionId) {
+    public Bid(int bidId, String username, String stock, int price, long time, int transactionId) {
         this.bidId = bidId;
         this.userId = username;
         this.stock = stock;
         this.price = price;
-        this.timeStamp = timestamp;
+        this.time = time;
         this.transactionId = transactionId;
     }
     
@@ -48,15 +46,14 @@ public class Bid {
         return userId;
     }
 
-    public Date getDate() {
-        return new Date(this.timeStamp.getTime());
+    public long getTime(){
+        return time;
     }
-
-
-    public Timestamp getTimeStamp() {
-        return timeStamp;
+    
+    public Date getDate(){
+        return new Date(time);
     }
-
+    
     public int getTransactionId() {
         return transactionId;
     }
@@ -72,7 +69,7 @@ public class Bid {
 
     @Override
     public String toString() {
-        return "Bid{" + "bidId=" + bidId + ", stock=" + stock + ", price=" + price + ", userId=" + userId + ", timeStamp=" + timeStamp + ", transactionId=" + transactionId + '}';
+        return "Bid{" + "bidId=" + bidId + ", stock=" + stock + ", price=" + price + ", userId=" + userId + ", time=" + time + ", transactionId=" + transactionId + '}';
     }
-    
+
 }

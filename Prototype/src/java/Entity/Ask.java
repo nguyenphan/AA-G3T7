@@ -1,7 +1,7 @@
 package Entity;
 
 import java.util.Date;
-import java.sql.Timestamp;
+
 // represents an Ask (in a sell order)
 public class Ask {
 
@@ -10,26 +10,23 @@ public class Ask {
   private int price; // ask price
   private String userId; // user who made this sell order
   private int transactionID;
-  private Timestamp timestamp;
+  private long time;
 
   // constructor
   public Ask(String stock, int price, String userId) {
     this.stock = stock;
     this.price = price;
     this.userId = userId;
-    
-    Date now = new Date();
-    this.timestamp = new Timestamp(now.getTime());
-    
+    this.time = (new Date()).getTime();
   }
   
   //for retrieving from DB
-    public Ask(int askID, String username, String stock, int price, Timestamp order_date, int transactionID) {
+    public Ask(int askID, String username, String stock, int price, long time, int transactionID) {
         this.askId = askID;
         this.userId = username;
         this.stock = stock;
         this.price = price;
-        this.timestamp = order_date;
+        this.time = time;
         this.transactionID = transactionID;
     }
 
@@ -41,10 +38,6 @@ public class Ask {
 
     public int getTransactionID() {
         return transactionID;
-    }
-
-    public Timestamp getTimestamp() {
-        return timestamp;
     }
     
     public String getStock() {
@@ -59,8 +52,12 @@ public class Ask {
         return userId;
     }
 
+    public long getTime(){
+        return time;
+    }
+    
     public Date getDate() {
-        return new Date(this.timestamp.getTime());
+        return new Date(time);
     }
     
     // setter
@@ -72,10 +69,9 @@ public class Ask {
     public void setTransactionID(int transactionID) {
         this.transactionID = transactionID;
     }
-    
-    
-    // toString
+
+    @Override
     public String toString() {
-        return "Ask{" + "askID=" + askId + ", username=" + userId + ", stockID=" + stock + ", price=" + price + ", order_date=" + this.getDate() + ", transactionID=" + transactionID + '}';
+        return "Ask{" + "askId=" + askId + ", stock=" + stock + ", price=" + price + ", userId=" + userId + ", transactionID=" + transactionID + ", time=" + time + '}';
     }
 }

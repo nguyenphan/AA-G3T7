@@ -53,10 +53,6 @@ public class MatchedTransaction {
         return date;
     }
     
-    public Timestamp getTimestamp(){
-        return new Timestamp(date.getTime());
-    }
-
     //setters
     public void setTransactionId(int transactionId) {
         this.transactionId = transactionId;

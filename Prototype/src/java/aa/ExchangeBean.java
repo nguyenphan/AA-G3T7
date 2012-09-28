@@ -234,7 +234,6 @@ public class ExchangeBean {
         //save bid to database
         BidDAO bidDAO = new BidDAO();
         bidDAO.add(newBid);
-        System.out.println(newBid);
         
         //get lowest ask for stock
         AskDAO askDAO = new AskDAO();
@@ -271,48 +270,38 @@ public class ExchangeBean {
 
     // call this method immediatley when a new ask (selling order) comes in
     public void placeNewAskAndAttemptMatch(Ask newAsk) {
+        
         //save ask to database
         AskDAO askDAO = new AskDAO();
         askDAO.add(newAsk);
         
-        // step 1: insert new ask into unfulfilledAsks
-        unfulfilledAsks.add(newAsk);
-
-        // step 2: check if there is any unfulfilled bids (buy orders) for the new ask's stock. if not, just return
-        // count keeps track of the number of unfulfilled bids for this stock
-        int count = 0;
-        for (int i = 0; i < unfulfilledBids.size(); i++) {
-            if (unfulfilledBids.get(i).getStock().equals(newAsk.getStock())) {
-                count++;
-            }
-        }
-        if (count == 0) {
-            return; // no unfulfilled asks of the same stock
-        }
-
-        // step 3: identify the current/highest bid in unfulfilledBids of the same stock
-        Bid highestBid = getHighestBid(newAsk.getStock());
-
-        // step 4: identify the current/lowest ask in unfulfilledAsks of the same stock
-        Ask lowestAsk = getLowestAsk(newAsk.getStock());
-
-
-        // step 5: check if there is a match.
-        // A match happens if the lowest ask is <= highest bid
-        if (lowestAsk.getPrice() <= highestBid.getPrice()) {
-            // a match is found!
-            unfulfilledBids.remove(highestBid);
-            unfulfilledAsks.remove(lowestAsk);
-            // this is a SELLING trade - the transaction happens at the lowest ask's timestamp, and the transaction price happens at the highest bid
-            MatchedTransaction match = new MatchedTransaction(highestBid, lowestAsk, lowestAsk.getDate(), highestBid.getPrice());
-            matchedTransactions.add(match);
-
-            // to be included here: inform Back Office Server of match
-            // to be done in v1.0
-
-            updateLatestPrice(match);
+        //get highest bid for stock
+        BidDAO bidDAO = new BidDAO();
+        Bid highestBid = bidDAO.getHighestBidForStock(newAsk.getStock());
+        
+        //matched:
+        if(highestBid!=null && (highestBid.getPrice() >= newAsk.getPrice())){
+            //create transaction
+            //this is a selling transaction, so transaction price is the price of bid
+            MatchedTransaction mt = new MatchedTransaction(highestBid, newAsk, newAsk.getDate(), highestBid.getPrice());
+            
+            //save transaction
+            MatchedTransactionDAO mtDAO = new MatchedTransactionDAO();
+            mtDAO.add(mt);
+            
+            //update transaction id in bid and ask
+            highestBid.setTransactionId(mt.getTransactionId());
+            bidDAO.update(highestBid);
+            newAsk.setTransactionID(mt.getTransactionId());
+            askDAO.update(newAsk);
+            
+            //update latest price
+            updateLatestPrice(mt);
+            
+            //log transaction
             logMatchedTransactions();
         }
+       
     }
 
     // updates either latestPriceForSmu, latestPriceForNus or latestPriceForNtu
