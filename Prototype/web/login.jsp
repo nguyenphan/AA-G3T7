@@ -25,7 +25,7 @@
     </head>
     
     <BODY OnLoad="document.myform.id.focus();">
-        <FORM name="myform" METHOD=POST ACTION="processLogin.jsp" onsubmit="return checkForm(this)"> 
+        <FORM name="myform" METHOD="POST" ACTION="processLogin" onsubmit="return checkForm(this)"> 
             <table border="1">
                 <thead>
                     <tr>
@@ -52,4 +52,12 @@
         </FORM>
 
     </BODY>
+    
+    <%
+        String error = request.getParameter("error");
+        if(error!=null){
+            out.println("Sorry, unable to log you in, please try again later.");
+        }
+    %>
+    
 </html>

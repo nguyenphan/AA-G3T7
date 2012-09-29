@@ -110,7 +110,7 @@ public class ExchangeBean {
     // check if a buyer is eligible to place an order based on his credit limit
     // if he is eligible, this method adjusts his credit limit and returns true
     // if he is not eligible, this method logs the bid and returns false
-    private boolean validateCreditLimit(Bid b) {
+    private boolean validateCreditLimit(Bid b) throws Exception{
 
         //get trader from database
         TraderDAO traderDAO = new TraderDAO();
@@ -190,7 +190,7 @@ public class ExchangeBean {
     // call this method immediatley when a new bid (buying order) comes in
     // this method returns false if this buy order has been rejected because of a credit limit breach
     // it returns true if the bid has been successfully added
-    public boolean placeNewBidAndAttemptMatch(Bid newBid) {
+    public boolean placeNewBidAndAttemptMatch(Bid newBid) throws Exception{
         
         //chekc if buyer has enough credit
         boolean okToContinue = validateCreditLimit(newBid);

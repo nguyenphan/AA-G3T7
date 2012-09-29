@@ -33,18 +33,44 @@ public class TraderDAO {
         return conn;
     }
 
-    public void add(Trader trader) {
+    public void add(Trader trader) throws SQLException{
+        
         try {
+            
             String queryString = "INSERT INTO trader VALUE(?,?)";
+            
+            //start transaction
             connection = getConnection();
+            connection.setAutoCommit(false);
+            
             ptmt = connection.prepareStatement(queryString);
             ptmt.setString(1, trader.getUsername());
             ptmt.setInt(2, trader.getCredit());
             ptmt.executeUpdate();
-        } catch (Exception e) {
+            
+            //end transaction, commit
+            connection.commit();
+            
+        } catch (SQLException e) {
+            
             e.printStackTrace();
+            
+            //if successfully connected to db, rollback any changes.
+            if(connection!=null){
+                connection.rollback();
+                System.err.print("Transaction is rolled back.");
+            }
+            
+            throw e;
+            
         } finally {
+            
+            //release resources
+            if(ptmt!=null) ptmt.close();
+            if(connection!=null) connection.close();
+            
         }
+        
     }
 
     public void update(Trader trader) {
@@ -95,9 +121,12 @@ public class TraderDAO {
         return traders;
     }
 
-    public Trader getTraderWithUsername(String username) {
+    public Trader getTraderWithUsername(String username) throws SQLException{
+        
+        String queryString = "SELECT * FROM trader where username = ?";
+            
         try {
-            String queryString = "SELECT * FROM trader where username = ?";
+            
             connection = getConnection();
             ptmt = connection.prepareStatement(queryString);
             ptmt.setString(1, username);
@@ -107,9 +136,17 @@ public class TraderDAO {
                 return new Trader(username, resultSet.getInt("credit"));
             }
 
-        } catch (Exception e) {
+        } catch (SQLException e) {
+            
             e.printStackTrace();
+            throw e;
+            
         } finally {
+            
+            //release resources
+            if(ptmt!=null) ptmt.close();
+            if(connection!=null) connection.close();
+            
         }
 
         return null;
