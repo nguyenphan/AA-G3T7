@@ -55,13 +55,13 @@ public class TraderDAO {
             
             e.printStackTrace();
             
+            DatabaseConnectionString.getInstance().switchConnectionString();
             //if successfully connected to db, rollback any changes.
             if(connection!=null){
                 connection.rollback();
                 System.err.print("Transaction is rolled back.");
             }
-            
-            throw e;
+            this.add(trader);
             
         } finally {
             
@@ -82,7 +82,8 @@ public class TraderDAO {
             ptmt.setString(2, trader.getUsername());
             ptmt.executeUpdate();
         } catch (Exception e) {
-            e.printStackTrace();
+            DatabaseConnectionString.getInstance().switchConnectionString();
+            this.update(trader);
         } finally {
         }
 
@@ -115,7 +116,10 @@ public class TraderDAO {
             }
             
         } catch (Exception e) {
+            DatabaseConnectionString.getInstance().switchConnectionString();
             e.printStackTrace();
+            
+            return this.getAllTraders();
         } finally {
         }
         return traders;
@@ -137,10 +141,9 @@ public class TraderDAO {
             }
 
         } catch (SQLException e) {
-            
+            DatabaseConnectionString.getInstance().switchConnectionString();
             e.printStackTrace();
-            throw e;
-            
+            return this.getTraderWithUsername(username);
         } finally {
             
             //release resources
