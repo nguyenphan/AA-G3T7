@@ -1,0 +1,20 @@
+/* 
+    Document   : site
+    Created on : Oct 12, 2012, 5:04:13 PM
+    Author     : Shi Ling Tai
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+/* 
+   TODO customize this sample style
+   Syntax recommendation http://www.w3.org/TR/REC-CSS2/
+*/
+
+root { 
+    display: block;
+    
+}
+body{
+    background-color: yellow;
+}
