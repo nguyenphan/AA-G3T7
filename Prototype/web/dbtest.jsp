@@ -29,7 +29,7 @@
             Stock ntu = stockDAO.getStockWithName("NTU");
         %>
         
-        <%=trader%><br/>
+        <%//=trader%><br/>
         <%=smu%><br/>
         <%=nus%><br/>
         <%=ntu%><br/>
@@ -55,7 +55,7 @@
             //test add ask
             Ask ask = new Ask("smu",10,"sarah");
             AskDAO askDAO = new AskDAO();
-            askDAO.add(ask);
+            //askDAO.add(ask);
         %>
         
         <%=ask%>

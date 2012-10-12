@@ -11,9 +11,9 @@ import java.sql.SQLException;
 
 public class ConnectionFactory {
 	String driverClassName = "com.mysql.jdbc.Driver";
-	String connectionUrl = "jdbc:mysql://localhost:3306/aastockexchange_db";
-	String dbUser = "root";
-	String dbPwd = "root";
+	String connectionUrl = "jdbc:mysql://192.168.0.4:5000,192.168.0.3:5000/aastockexchange_db?autoReconnect=true&connectTimeout=500&failOverReadOnly=false";
+	String dbUser = "ptlenguyen-PC";
+	String dbPwd = "password";
 
 	private static ConnectionFactory connectionFactory = null;
 
@@ -27,13 +27,13 @@ public class ConnectionFactory {
 
 	public Connection getConnection() throws SQLException {
 		Connection conn = null;
-		conn = DriverManager.getConnection(connectionUrl, dbUser, dbPwd);
+		conn = DriverManager.getConnection(DatabaseConnectionString.getInstance().getConnectionString(), dbUser, dbPwd);
 		return conn;
 	}
 
 	public static ConnectionFactory getInstance() {
 		if (connectionFactory == null) {
-			connectionFactory = new ConnectionFactory();
+                    connectionFactory = new ConnectionFactory();
 		}
 		return connectionFactory;
 	}

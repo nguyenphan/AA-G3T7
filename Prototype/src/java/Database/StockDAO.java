@@ -23,25 +23,28 @@ public class StockDAO {
     }
 
     public Stock getStockWithName(String name) {
+        Stock s = null;
+        
         try {
             String queryString = "SELECT * FROM stock where stockName = ?";
             connection = getConnection();
             ptmt = connection.prepareStatement(queryString);
             ptmt.setString(1, name);
+            ptmt.setQueryTimeout(2);
             resultSet = ptmt.executeQuery();
-
-            Stock s = null;
+           
             while (resultSet.next()) {
                 s = new Stock(name);
             }
-            return s;
 
         } catch (Exception e) {
+            DatabaseConnectionString.getInstance().switchConnectionString();
             e.printStackTrace();
-
+            return this.getStockWithName(name);
         } finally {
+            
         }
-
-        return null;
+        
+        return s;
     }
 }
