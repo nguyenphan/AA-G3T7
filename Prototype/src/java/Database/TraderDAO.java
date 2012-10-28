@@ -5,12 +5,10 @@
 package Database;
 
 import Entity.Trader;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import java.util.ArrayList;
 
 /**
@@ -33,42 +31,27 @@ public class TraderDAO {
         return conn;
     }
 
-    public void add(Trader trader) throws SQLException{
+    public void add(Connection conn, Trader trader) throws SQLException{
         
         try {
             
             String queryString = "INSERT INTO trader VALUE(?,?)";
             
-            //start transaction
-            connection = getConnection();
-            connection.setAutoCommit(false);
-            
-            ptmt = connection.prepareStatement(queryString);
+            ptmt = conn.prepareStatement(queryString);
             ptmt.setString(1, trader.getUsername());
             ptmt.setInt(2, trader.getCredit());
             ptmt.executeUpdate();
             
-            //end transaction, commit
-            connection.commit();
             
         } catch (SQLException e) {
             
-            e.printStackTrace();
-            
-            DatabaseConnectionString.getInstance().switchConnectionString();
-            //if successfully connected to db, rollback any changes.
-            if(connection!=null){
-                connection.rollback();
-                System.err.print("Transaction is rolled back.");
-            }
-            this.add(trader);
+            throw e;    //pass to caller to handle
             
         } finally {
-            
+
             //release resources
             if(ptmt!=null) ptmt.close();
-            if(connection!=null) connection.close();
-            
+        
         }
         
     }
@@ -125,6 +108,8 @@ public class TraderDAO {
         return traders;
     }
 
+    
+    //TODO: Delete this
     public Trader getTraderWithUsername(String username) throws SQLException{
         
         String queryString = "SELECT * FROM trader where username = ?";
@@ -149,6 +134,34 @@ public class TraderDAO {
             //release resources
             if(ptmt!=null) ptmt.close();
             if(connection!=null) connection.close();
+            
+        }
+
+        return null;
+    }
+    
+    public Trader getTraderWithUsername(Connection conn, String username) throws SQLException{
+        
+        String queryString = "SELECT * FROM trader where username = ?";
+            
+        try {
+            
+            ptmt = conn.prepareStatement(queryString);
+            ptmt.setString(1, username);
+            resultSet = ptmt.executeQuery();
+
+            while (resultSet.next()) {
+                return new Trader(username, resultSet.getInt("credit"));
+            }
+
+        } catch (SQLException e) {
+            
+            throw e;    //pass to caller to handle
+        
+        } finally {
+            
+            //release resources
+            if(ptmt!=null) ptmt.close(); 
             
         }
 
