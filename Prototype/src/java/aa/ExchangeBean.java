@@ -3,8 +3,14 @@ package aa;
 import java.io.*;
 import java.util.*;
 
+import static java.util.Arrays.asList;
+import concurrency.*;
+
 import Database.*;
 import Entity.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class ExchangeBean {
 
@@ -13,11 +19,9 @@ public class ExchangeBean {
     private final String REJECTED_BUY_ORDERS_LOG_FILE = "c:\\temp\\rejected.log";
     // used to calculate remaining credit available for buyers
     private final int DAILY_CREDIT_LIMIT_FOR_BUYERS = 1000000;
-    
     // used to keep track of all matched transactions (asks/bids) in the system
     // matchedTransactions is cleaned once the records are written to the log file successfully
     private ArrayList<MatchedTransaction> matchedTransactions = new ArrayList<MatchedTransaction>();
-    
     // keeps track of the latest price for each of the 3 stocks
     private int latestPriceForSmu = -1;
     private int latestPriceForNus = -1;
@@ -34,7 +38,7 @@ public class ExchangeBean {
         // dump all unfulfilled buy and sell orders
         BidDAO bidDAO = new BidDAO();
         bidDAO.clearUnfulfilledBids();
-        
+
         AskDAO askDAO = new AskDAO();
         askDAO.clearUnfulfilledAsks();
 
@@ -49,9 +53,9 @@ public class ExchangeBean {
     public String getUnfulfilledBidsForDisplay(String stock) {
         BidDAO bidDAO = new BidDAO();
         ArrayList<Bid> unfulfilledBids = bidDAO.getUnfulfilledBidsForStock(stock);
-        
+
         StringBuilder returnString = new StringBuilder();
-        for(Bid bid: unfulfilledBids){
+        for (Bid bid : unfulfilledBids) {
             returnString.append(bid.toString() + "<br />");
         }
         return returnString.toString();
@@ -63,9 +67,9 @@ public class ExchangeBean {
     public String getUnfulfilledAsks(String stock) {
         AskDAO askDAO = new AskDAO();
         ArrayList<Ask> unfulfilledAsks = askDAO.getUnfulfilledAsksForStock(stock);
-        
+
         StringBuilder returnString = new StringBuilder();
-        for(Ask ask: unfulfilledAsks){
+        for (Ask ask : unfulfilledAsks) {
             returnString.append(ask.toString() + "<br />");
         }
         return returnString.toString();
@@ -110,7 +114,7 @@ public class ExchangeBean {
     // check if a buyer is eligible to place an order based on his credit limit
     // if he is eligible, this method adjusts his credit limit and returns true
     // if he is not eligible, this method logs the bid and returns false
-    private boolean validateCreditLimit(Bid b) throws Exception{
+    private boolean validateCreditLimit(Bid b) throws Exception {
 
         //get trader from database
         TraderDAO traderDAO = new TraderDAO();
@@ -127,7 +131,7 @@ public class ExchangeBean {
         } else {
             // it's ok - adjust credit limit and return true
             trader.deductCredit(totalPriceOfBid);
-            
+
             //save to database
             traderDAO.update(trader);
             return true;
@@ -135,6 +139,7 @@ public class ExchangeBean {
     }
 
     // call this to append all rejected buy orders to log file
+    // TODO: Concurrency Lock
     private void logRejectedBuyOrder(Bid b) {
         try {
             PrintWriter outFile = new PrintWriter(new FileWriter(REJECTED_BUY_ORDERS_LOG_FILE, true));
@@ -152,6 +157,7 @@ public class ExchangeBean {
     }
 
     // call this to append all matched transactions in matchedTransactions to log file and clear matchedTransactions
+    // TODO: Concurrency Lock
     private void logMatchedTransactions() {
         try {
             PrintWriter outFile = new PrintWriter(new FileWriter(MATCH_LOG_FILE, true));
@@ -174,105 +180,136 @@ public class ExchangeBean {
     // returns a string of HTML table rows code containing the list of user IDs and their remaining credits
     // this method is used by viewOrders.jsp for debugging purposes
     public String getAllCreditRemainingForDisplay() {
-        
+
         String returnString = "";
-        
+
         TraderDAO traderDAO = new TraderDAO();
         ArrayList<Trader> traders = traderDAO.getAllTraders();
-        
-        for(Trader t: traders){
+
+        for (Trader t : traders) {
             returnString += "<tr><td>" + t.getUsername() + "</td><td>" + t.getCredit() + "</td></tr>";
         }
-        
+
         return returnString;
     }
 
     // call this method immediatley when a new bid (buying order) comes in
     // this method returns false if this buy order has been rejected because of a credit limit breach
     // it returns true if the bid has been successfully added
-    public boolean placeNewBidAndAttemptMatch(Bid newBid) throws Exception{
-        
-        //chekc if buyer has enough credit
+    public boolean placeNewBidAndAttemptMatch(Bid newBid) throws Exception {
+
+        //check if buyer has enough credit
         boolean okToContinue = validateCreditLimit(newBid);
         if (!okToContinue) {
             return false;
         }
 
-        //save bid to database
-        BidDAO bidDAO = new BidDAO();
-        bidDAO.add(newBid);
-        
-        //get lowest ask for stock
-        AskDAO askDAO = new AskDAO();
-        Ask lowestAsk = askDAO.getLowestAskForStock(newBid.getStock());
-        
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        List<Future<Object[]>> results = executor.invokeAll(asList(new AddEntityOperation(newBid), new CheckMatchOperation(newBid)));
+        executor.shutdown();
+
+        boolean isMatched = false;
+        Ask lowestAsk = null;
+
+        for (Future<Object[]> result : results) {
+            Object[] resultArray = result.get();
+
+            if (resultArray != null) {
+                lowestAsk = (Ask) resultArray[0];
+                isMatched = Boolean.parseBoolean((String) resultArray[1]);
+            }
+        }
+
         //no match, return immedietely
-        if(lowestAsk==null || lowestAsk.getPrice()>newBid.getPrice()){
+        if (lowestAsk == null || !isMatched) {
             return true;
         }
-      
+
         //matched:
-        
+
         //create transaction
         //this is a buying transaction, so transaction price is price of ask
-        MatchedTransaction mt = new MatchedTransaction(newBid,lowestAsk,newBid.getDate(),lowestAsk.getPrice());
+        MatchedTransaction mt = new MatchedTransaction(newBid, lowestAsk, newBid.getDate(), lowestAsk.getPrice());
         MatchedTransactionDAO mtDAO = new MatchedTransactionDAO();
         mtDAO.add(mt);  //transaction id will be generated here
-        
+
         //update transactionID in ask and bid
+        BidDAO bidDAO = new BidDAO();
+        AskDAO askDAO = new AskDAO();
+
         newBid.setTransactionId(mt.getTransactionId());
         bidDAO.update(newBid);
         lowestAsk.setTransactionID(mt.getTransactionId());
         askDAO.update(lowestAsk);
-        
+
         //log
         logMatchedTransactions();
-        
+
         //update latest price
         updateLatestPrice(mt);
-        
+
+        //TODO: send to back end office 
+
         //acknowledge bid
         return true;
     }
 
     // call this method immediatley when a new ask (selling order) comes in
-    public void placeNewAskAndAttemptMatch(Ask newAsk) {
-        
-        //save ask to database
-        AskDAO askDAO = new AskDAO();
-        askDAO.add(newAsk);
-        
-        //get highest bid for stock
-        BidDAO bidDAO = new BidDAO();
-        Bid highestBid = bidDAO.getHighestBidForStock(newAsk.getStock());
-        
+    public void placeNewAskAndAttemptMatch(Ask newAsk) throws Exception {
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        List<Future<Object[]>> results = executor.invokeAll(asList(new AddEntityOperation(newAsk), new CheckMatchOperation(newAsk)));
+        executor.shutdown();
+
+        boolean isMatched = false;
+        Bid highestBid = null;
+
+        for (Future<Object[]> result : results) {
+            Object[] resultArray = result.get();
+
+            if (resultArray != null) {
+                highestBid = (Bid) resultArray[0];
+                isMatched = Boolean.parseBoolean((String) resultArray[1]);
+            }
+        }
         //matched:
-        if(highestBid!=null && (highestBid.getPrice() >= newAsk.getPrice())){
+        if (isMatched) {
+
+            //save ask to database
+            AskDAO askDAO = new AskDAO();
+
+
+            //get highest bid for stock
+            BidDAO bidDAO = new BidDAO();
+
             //create transaction
             //this is a selling transaction, so transaction price is the price of bid
             MatchedTransaction mt = new MatchedTransaction(highestBid, newAsk, newAsk.getDate(), highestBid.getPrice());
-            
+
             //save transaction
             MatchedTransactionDAO mtDAO = new MatchedTransactionDAO();
             mtDAO.add(mt);
-            
+
             //update transaction id in bid and ask
             highestBid.setTransactionId(mt.getTransactionId());
             bidDAO.update(highestBid);
             newAsk.setTransactionID(mt.getTransactionId());
             askDAO.update(newAsk);
-            
+
             //update latest price
             updateLatestPrice(mt);
-            
+
             //log transaction
             logMatchedTransactions();
+
+            //TODO: send to back office
         }
-       
+
     }
 
     // updates either latestPriceForSmu, latestPriceForNus or latestPriceForNtu
     // based on the MatchedTransaction object passed in
+    // TODO: Concurrency Lock
     private void updateLatestPrice(MatchedTransaction m) {
         String stock = m.getStock();
         int price = m.getPrice();
@@ -288,6 +325,7 @@ public class ExchangeBean {
 
     // updates either latestPriceForSmu, latestPriceForNus or latestPriceForNtu
     // based on the MatchedTransaction object passed in
+    // TODO: Concurrency Lock
     public int getLatestPrice(String stock) {
         if (stock.equals("smu")) {
             return latestPriceForSmu;
