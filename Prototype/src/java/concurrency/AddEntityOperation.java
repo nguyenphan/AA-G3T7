@@ -4,10 +4,10 @@
  */
 package concurrency;
 
-import Database.AskDAO;
-import Database.BidDAO;
-import Entity.Ask;
-import Entity.Bid;
+import Database.*;
+import Entity.*;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.concurrent.Callable;
 
 /**
@@ -22,14 +22,37 @@ public class AddEntityOperation implements Callable<Object[]> {
     }
     
     public Object[] call() throws Exception {
-        if (objectToAdd instanceof Ask) {
-            AskDAO askDAO = new AskDAO();
+        
+        Connection conn = null;
+        
+        try{
             
-            askDAO.add((Ask)objectToAdd);
-        } else {
-            BidDAO bidDAO = new BidDAO();
+            conn = ConnectionFactory.getInstance().getConnection();
+            conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);  //inserting stuff, use range locks
+            conn.setAutoCommit(false);
             
-            bidDAO.add((Bid)objectToAdd);
+            if (objectToAdd instanceof Ask) {
+
+                AskDAO askDAO = new AskDAO();
+                askDAO.add((Ask)objectToAdd);
+            } else {
+
+                BidDAO bidDAO = new BidDAO();
+                bidDAO.add(conn, (Bid)objectToAdd);
+
+            }
+            
+            conn.commit();  //release lock
+          
+        }catch(SQLException e){
+            
+            //TODO: handle exception
+            
+        }finally{
+            
+            //release connection
+            if(conn!=null) conn.close();
+            
         }
         
         return null;
