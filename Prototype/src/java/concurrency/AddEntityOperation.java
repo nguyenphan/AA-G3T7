@@ -34,7 +34,7 @@ public class AddEntityOperation implements Callable<Object[]> {
             if (objectToAdd instanceof Ask) {
 
                 AskDAO askDAO = new AskDAO();
-                askDAO.add((Ask)objectToAdd);
+                askDAO.add(conn,(Ask)objectToAdd);
             } else {
 
                 BidDAO bidDAO = new BidDAO();

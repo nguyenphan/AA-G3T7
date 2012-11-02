@@ -50,29 +50,68 @@ public class ExchangeBean {
     // returns a String of unfulfilled bids for a particular stock
     // returns an empty string if no such bid
     // bids are separated by <br> for display on HTML page
-    public String getUnfulfilledBidsForDisplay(String stock) {
-        BidDAO bidDAO = new BidDAO();
-        ArrayList<Bid> unfulfilledBids = bidDAO.getUnfulfilledBidsForStock(stock);
+    public String getUnfulfilledBidsForDisplay(String stock) throws SQLException {
 
-        StringBuilder returnString = new StringBuilder();
-        for (Bid bid : unfulfilledBids) {
-            returnString.append(bid.toString() + "<br />");
+        Connection conn = null;
+        try {
+
+            conn = ConnectionFactory.getInstance().getConnection();
+            ArrayList<Bid> unfulfilledBids = BidDAO.getUnfulfilledBidsForStock(conn, stock);
+            StringBuilder returnString = new StringBuilder();
+            for (Bid bid : unfulfilledBids) {
+                returnString.append(bid.toString());
+                returnString.append("<br />");
+            }
+            return returnString.toString();
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+            return "Sorry, we are unable to retrieve the unfulfilled bids for you now. :(";
+
+        } finally {
+
+            //release connection
+            if (conn != null) {
+                conn.close();
+            }
+
         }
-        return returnString.toString();
+
     }
 
     // returns a String of unfulfilled asks for a particular stock
     // returns an empty string if no such ask
     // asks are separated by <br> for display on HTML page
-    public String getUnfulfilledAsks(String stock) {
-        AskDAO askDAO = new AskDAO();
-        ArrayList<Ask> unfulfilledAsks = askDAO.getUnfulfilledAsksForStock(stock);
+    public String getUnfulfilledAsks(String stock) throws SQLException {
 
-        StringBuilder returnString = new StringBuilder();
-        for (Ask ask : unfulfilledAsks) {
-            returnString.append(ask.toString() + "<br />");
+        Connection conn = null;
+        try {
+
+            conn = ConnectionFactory.getInstance().getConnection();
+            ArrayList<Ask> unfulfilledAsks = AskDAO.getUnfulfilledAsksForStock(conn, stock);
+
+            StringBuilder returnString = new StringBuilder();
+            for (Ask ask : unfulfilledAsks) {
+                returnString.append(ask.toString());
+                returnString.append("<br />");
+            }
+            return returnString.toString();
+
+        } catch (SQLException e) {
+
+            e.printStackTrace();
+            return "Sorry, we are unable to retrieve the unfulfilled asks for you now. :(";
+
+        } finally {
+
+            //release connection
+            if (conn != null) {
+                conn.close();
+            }
+
         }
-        return returnString.toString();
+
     }
 
     // returns the highest bid for a particular stock
@@ -94,8 +133,7 @@ public class ExchangeBean {
         try {
 
             conn = ConnectionFactory.getInstance().getConnection();
-            BidDAO bidDAO = new BidDAO();
-            return bidDAO.getHighestBidForStock(conn, stock);
+            return BidDAO.getHighestBidForStock(conn, stock);
 
         } catch (SQLException e) {
 
@@ -130,8 +168,7 @@ public class ExchangeBean {
         try {
 
             conn = ConnectionFactory.getInstance().getConnection();
-            AskDAO askDAO = new AskDAO();
-            return askDAO.getLowestAskForStock(conn, stock);
+            return AskDAO.getLowestAskForStock(conn, stock);
 
         } catch (SQLException e) {
 
@@ -152,8 +189,6 @@ public class ExchangeBean {
     // if he is not eligible, this method logs the bid and returns false
     private boolean validateCreditLimit(Bid b) throws Exception {
 
-        TraderDAO traderDAO = new TraderDAO();
-
         //start transaction
         Connection conn = null;
         try {
@@ -163,7 +198,7 @@ public class ExchangeBean {
             conn.setAutoCommit(false);
 
             //get trader from database
-            Trader trader = traderDAO.getTraderWithUsername(conn, b.getUserId());   //will be read locked.
+            Trader trader = TraderDAO.getTraderWithUsername(conn, b.getUserId());   //will be read locked.
 
             // calculate the total price of this bid, each bid is for 1000 shares
             int totalPriceOfBid = b.getPrice() * 1000;
@@ -179,7 +214,7 @@ public class ExchangeBean {
 
                 //sufficient, deduct credit and update database
                 trader.deductCredit(totalPriceOfBid);
-                traderDAO.update(conn, trader);
+                TraderDAO.update(conn, trader);
                 sufficientCredit = true;
 
             }
@@ -242,18 +277,32 @@ public class ExchangeBean {
 
     // returns a string of HTML table rows code containing the list of user IDs and their remaining credits
     // this method is used by viewOrders.jsp for debugging purposes
-    public String getAllCreditRemainingForDisplay() {
+    public String getAllCreditRemainingForDisplay() throws SQLException {
 
-        String returnString = "";
+        Connection conn = null;
+        try {
+            
+            conn = ConnectionFactory.getInstance().getConnection();
+            String returnString = "";
 
-        TraderDAO traderDAO = new TraderDAO();
-        ArrayList<Trader> traders = traderDAO.getAllTraders();
+            ArrayList<Trader> traders = TraderDAO.getAllTraders(conn);
 
-        for (Trader t : traders) {
-            returnString += "<tr><td>" + t.getUsername() + "</td><td>" + t.getCredit() + "</td></tr>";
+            for (Trader t : traders) {
+                returnString += "<tr><td>" + t.getUsername() + "</td><td>" + t.getCredit() + "</td></tr>";
+            }
+
+            return returnString;
+            
+        } catch (SQLException e) {
+            
+            e.printStackTrace();
+            return "Sorry, we are unable to retrieve the credits for you now. :(";
+
+        } finally {
+            
+            if(conn!=null) conn.close();
+            
         }
-
-        return returnString;
     }
 
     // call this method immediatley when a new bid (buying order) comes in
@@ -294,12 +343,9 @@ public class ExchangeBean {
                 conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
                 conn.setAutoCommit(false);
 
-                BidDAO bidDAO = new BidDAO();
-                AskDAO askDAO = new AskDAO();
-
                 //lock ask and bid for update
-                bidDAO.lockForUpdate(conn, newBid);
-                askDAO.lockForUpdate(conn, lowestAsk);
+                BidDAO.lockForUpdate(conn, newBid);
+                AskDAO.lockForUpdate(conn, lowestAsk);
 
                 //this is a buying transaction, so transaction price is price of ask
                 MatchedTransaction mt = new MatchedTransaction(newBid, lowestAsk, newBid.getDate(), lowestAsk.getPrice());
@@ -317,16 +363,16 @@ public class ExchangeBean {
                 //update transaction id in bid and ask, and save to database
                 newBid.setTransactionId(mt.getTransactionId());
                 lowestAsk.setTransactionID(mt.getTransactionId());
-                bidDAO.update(conn, newBid);
-                askDAO.update(conn, lowestAsk);
+                BidDAO.update(conn, newBid);
+                AskDAO.update(conn, lowestAsk);
 
                 //finished transaction, release locks
                 conn.commit();
 
             } catch (SQLException e) {
-                
+
                 e.printStackTrace();
-                
+
                 //error! rollback.
                 if (conn != null) {
                     conn.rollback();
@@ -365,25 +411,22 @@ public class ExchangeBean {
         }
 
         System.out.println("isMatched = " + isMatched);
-        
+
         //matched:
         if (isMatched) {
 
             Connection conn = null;
 
             try {
-                
+
                 conn = ConnectionFactory.getInstance().getConnection();
                 conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
                 conn.setAutoCommit(false);
-                
-                BidDAO bidDAO = new BidDAO();
-                AskDAO askDAO = new AskDAO();
-                
+
                 //lock ask and bid for update
-                bidDAO.lockForUpdate(conn, highestBid);
-                askDAO.lockForUpdate(conn, newAsk);
-                
+                BidDAO.lockForUpdate(conn, highestBid);
+                AskDAO.lockForUpdate(conn, newAsk);
+
                 //create transaction and save in database
                 //this is a selling transaction, so transaction price is the price of bid
                 MatchedTransaction mt = new MatchedTransaction(highestBid, newAsk, newAsk.getDate(), highestBid.getPrice());
@@ -393,23 +436,23 @@ public class ExchangeBean {
                 logMatchedTransactions();
 
                 //TODO: send to back office, make concurrent
-                
+
                 //update latest price
                 updateLatestPrice(mt);
-                
+
                 //update transaction id in bid and ask, and save to database
                 highestBid.setTransactionId(mt.getTransactionId());
                 newAsk.setTransactionID(mt.getTransactionId());
-                bidDAO.update(conn, highestBid);
-                askDAO.update(conn, newAsk);
-                
+                BidDAO.update(conn, highestBid);
+                AskDAO.update(conn, newAsk);
+
                 //finished, release locks
                 conn.commit();
-                
+
             } catch (SQLException e) {
 
                 e.printStackTrace();
-                
+
                 if (conn != null) {
                     conn.rollback();
                 }
@@ -423,8 +466,8 @@ public class ExchangeBean {
             }
 
         }
-        
-        
+
+
     }
 
     // updates either latestPriceForSmu, latestPriceForNus or latestPriceForNtu
@@ -456,26 +499,24 @@ public class ExchangeBean {
         }
         return -1; // no such stock
     }
-    
-    public boolean sendToBackOffice(String txnDescription){
-      aa.Service service = new aa.Service();
-      boolean status = false;
-      
-      try {
-        // create new instances of remote Service objects
-        aa.ServiceSoap port = service.getServiceSoap();
 
-        // invoke the remote method by calling port.processTransaction().
-        // processTransaction() will return false if the teamID &/or password is wrong
-        // it will return true if the web service is correctly called
-        status = port.processTransaction("G3T7", "lime", txnDescription);
-        return status;
-      }
-      catch (Exception ex) {
-          // may come here if a time out or any other exception occurs
-          // what should you do here??
-      }
-      return false; // failure due to exception
-  }
+    public boolean sendToBackOffice(String txnDescription) {
+        aa.Service service = new aa.Service();
+        boolean status = false;
 
+        try {
+            // create new instances of remote Service objects
+            aa.ServiceSoap port = service.getServiceSoap();
+
+            // invoke the remote method by calling port.processTransaction().
+            // processTransaction() will return false if the teamID &/or password is wrong
+            // it will return true if the web service is correctly called
+            status = port.processTransaction("G3T7", "lime", txnDescription);
+            return status;
+        } catch (Exception ex) {
+            // may come here if a time out or any other exception occurs
+            // what should you do here??
+        }
+        return false; // failure due to exception
+    }
 }

@@ -28,12 +28,15 @@ public class AskDAO {
         return conn;
     }
 
-    public void add(Ask ask) {
+    public static void add(Connection conn, Ask ask) throws SQLException {
+
+        PreparedStatement ptmt = null;
+        String queryString = "INSERT INTO ask "
+                + "SET username=?,stockName=?,price=?,order_date=?";
+
         try {
-            String queryString = "INSERT INTO ask "
-                    + "SET username=?,stockName=?,price=?,order_date=?";
-            connection = getConnection();
-            ptmt = connection.prepareStatement(queryString, Statement.RETURN_GENERATED_KEYS);
+
+            ptmt = conn.prepareStatement(queryString, Statement.RETURN_GENERATED_KEYS);
             ptmt.setString(1, ask.getUserId());
             ptmt.setString(2, ask.getStock());
             ptmt.setDouble(3, ask.getPrice());
@@ -47,13 +50,21 @@ public class AskDAO {
                 throw new SQLException("Failed to create Ask, no generated ID obtained.");
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+
+            throw e;    //pass back to caller
+
         } finally {
+
+            //release resources
+            if (ptmt != null) {
+                ptmt.close();
+            }
+
         }
     }
 
-    public void update(Connection conn, Ask ask) throws SQLException {
+    public static void update(Connection conn, Ask ask) throws SQLException {
 
         PreparedStatement ptmt = null;
         String queryString = "UPDATE ask SET transactionID = ? where askID = ?";
@@ -80,7 +91,7 @@ public class AskDAO {
 
     }
 
-    public void lockForUpdate(Connection conn, Ask ask) throws SQLException {
+    public static void lockForUpdate(Connection conn, Ask ask) throws SQLException {
 
         PreparedStatement ptmt = null;
         String query = "SELECT * FROM ask "
@@ -163,16 +174,19 @@ public class AskDAO {
         return allAsks;
     }
 
-    public ArrayList<Ask> getUnfulfilledAsksForStock(String stockName) {
+    public static ArrayList<Ask> getUnfulfilledAsksForStock(Connection conn, String stockName) throws SQLException{
+        
         ArrayList unfulfilledAsks = new ArrayList();
 
+        PreparedStatement ptmt = null;
+        String query = "SELECT * FROM ask WHERE transactionID IS NULL AND stockName=?";
+            
         try {
-            String query = "SELECT * FROM ask WHERE transactionID IS NULL AND stockName=?";
-            connection = getConnection();
-            ptmt = connection.prepareStatement(query);
+        
+            ptmt = conn.prepareStatement(query);
             ptmt.setString(1, stockName);
 
-            resultSet = ptmt.executeQuery();
+            ResultSet resultSet = ptmt.executeQuery();
 
             while (resultSet.next()) {
                 Ask ask = new Ask(resultSet.getInt("askID"),
@@ -183,14 +197,22 @@ public class AskDAO {
                         resultSet.getInt("transactionID"));
                 unfulfilledAsks.add(ask);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+            
+        } catch (SQLException e) {
+            
+            throw e;    //pass back to caller
+            
+        }finally{
+            
+            if(ptmt!=null) ptmt.close();
+            
         }
 
         return unfulfilledAsks;
+        
     }
 
-    public Ask getLowestAskForStock(Connection conn, String stockName) throws SQLException {
+    public static Ask getLowestAskForStock(Connection conn, String stockName) throws SQLException {
 
         PreparedStatement ptmt = null;
         String query = "SELECT * FROM ask "
@@ -202,7 +224,7 @@ public class AskDAO {
 
             ptmt = conn.prepareStatement(query);
             ptmt.setString(1, stockName);
-            resultSet = ptmt.executeQuery();
+            ResultSet resultSet = ptmt.executeQuery();
 
             while (resultSet.next()) {
                 return new Ask(resultSet.getInt("askID"),
