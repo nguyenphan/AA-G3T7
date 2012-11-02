@@ -1,13 +1,13 @@
 package aa;
 
-import java.io.*;
-import java.util.*;
-
-import static java.util.Arrays.asList;
-import concurrency.*;
-
 import Database.*;
 import Entity.*;
+import concurrency.*;
+import java.io.*;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.*;
+import static java.util.Arrays.asList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -77,7 +77,7 @@ public class ExchangeBean {
 
     // returns the highest bid for a particular stock
     // returns -1 if there is no bid at all
-    public int getHighestBidPrice(String stock) {
+    public int getHighestBidPrice(String stock) throws SQLException {
         Bid highestBid = getHighestBid(stock);
         if (highestBid == null) {
             return -1;
@@ -88,14 +88,32 @@ public class ExchangeBean {
 
     // retrieve unfulfiled current (highest) bid for a particular stock
     // returns null if there is no unfulfiled bid for this stock
-    private Bid getHighestBid(String stock) {
-        BidDAO bidDAO = new BidDAO();
-        return bidDAO.getHighestBidForStock(stock);
+    public Bid getHighestBid(String stock) throws SQLException {
+
+        Connection conn = null;
+        try {
+
+            conn = ConnectionFactory.getInstance().getConnection();
+            BidDAO bidDAO = new BidDAO();
+            return bidDAO.getHighestBidForStock(conn, stock);
+
+        } catch (SQLException e) {
+
+            throw e;    //pass back to caller to handle
+
+        } finally {
+
+            if (conn != null) {
+                conn.close();
+            }
+
+        }
+
     }
 
     // returns the lowest ask for a particular stock
     // returns -1 if there is no ask at all
-    public int getLowestAskPrice(String stock) {
+    public int getLowestAskPrice(String stock) throws SQLException {
         Ask lowestAsk = getLowestAsk(stock);
         if (lowestAsk == null) {
             return -1;
@@ -106,9 +124,27 @@ public class ExchangeBean {
 
     // retrieve unfulfiled current (lowest) ask for a particular stock
     // returns null if there is no unfulfiled asks for this stock
-    private Ask getLowestAsk(String stock) {
-        AskDAO askDAO = new AskDAO();
-        return askDAO.getLowestAskForStock(stock);
+    public Ask getLowestAsk(String stock) throws SQLException {
+
+        Connection conn = null;
+        try {
+
+            conn = ConnectionFactory.getInstance().getConnection();
+            AskDAO askDAO = new AskDAO();
+            return askDAO.getLowestAskForStock(conn, stock);
+
+        } catch (SQLException e) {
+
+            throw e;    //pass back to caller to handle
+
+        } finally {
+
+            if (conn != null) {
+                conn.close();
+            }
+
+        }
+
     }
 
     // check if a buyer is eligible to place an order based on his credit limit
@@ -116,26 +152,53 @@ public class ExchangeBean {
     // if he is not eligible, this method logs the bid and returns false
     private boolean validateCreditLimit(Bid b) throws Exception {
 
-        //get trader from database
         TraderDAO traderDAO = new TraderDAO();
-        Trader trader = traderDAO.getTraderWithUsername(b.getUserId());
 
-        // calculate the total price of this bid
-        int totalPriceOfBid = b.getPrice() * 1000; // each bid is for 1000 shares
+        //start transaction
+        Connection conn = null;
+        try {
 
-        if (totalPriceOfBid > trader.getCredit()) {
-            // no go - log failed bid and return false
-            logRejectedBuyOrder(b);
+            conn = ConnectionFactory.getInstance().getConnection();
+            conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);   //phantom reads okay, non-repeatable not allowed. we don't want credit value to be changed midway.
+            conn.setAutoCommit(false);
+
+            //get trader from database
+            Trader trader = traderDAO.getTraderWithUsername(conn, b.getUserId());   //will be read locked.
+
+            // calculate the total price of this bid, each bid is for 1000 shares
+            int totalPriceOfBid = b.getPrice() * 1000;
+
+            //check if trader has sufficient credit
+            boolean sufficientCredit = false;
+            if (totalPriceOfBid > trader.getCredit()) {
+
+                //insufficient, log failure
+                logRejectedBuyOrder(b);
+
+            } else {
+
+                //sufficient, deduct credit and update database
+                trader.deductCredit(totalPriceOfBid);
+                traderDAO.update(conn, trader);
+                sufficientCredit = true;
+
+            }
+
+            conn.commit();  //release locks
+            return sufficientCredit;
+
+        } catch (SQLException e) {
+
+            //TODO: error handling
             return false;
 
-        } else {
-            // it's ok - adjust credit limit and return true
-            trader.deductCredit(totalPriceOfBid);
+        } finally {
 
-            //save to database
-            traderDAO.update(trader);
-            return true;
+            //release connection
+            conn.close();
+
         }
+
     }
 
     // call this to append all rejected buy orders to log file
@@ -204,59 +267,88 @@ public class ExchangeBean {
             return false;
         }
 
+        //sufficient credits, add bid to database and check for match
         ExecutorService executor = Executors.newFixedThreadPool(2);
         List<Future<Object[]>> results = executor.invokeAll(asList(new AddEntityOperation(newBid), new CheckMatchOperation(newBid)));
         executor.shutdown();
 
         boolean isMatched = false;
         Ask lowestAsk = null;
-
         for (Future<Object[]> result : results) {
             Object[] resultArray = result.get();
-
             if (resultArray != null) {
                 lowestAsk = (Ask) resultArray[0];
                 isMatched = Boolean.parseBoolean((String) resultArray[1]);
             }
         }
 
-        //no match, return immedietely
-        if (lowestAsk == null || !isMatched) {
-            return true;
+        System.out.println("isMatched = " + isMatched);
+
+        //matched, create transaction
+        if (isMatched) {
+
+            Connection conn = null;
+            try {
+
+                conn = ConnectionFactory.getInstance().getConnection();
+                conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+                conn.setAutoCommit(false);
+
+                BidDAO bidDAO = new BidDAO();
+                AskDAO askDAO = new AskDAO();
+
+                //lock ask and bid for update
+                bidDAO.lockForUpdate(conn, newBid);
+                askDAO.lockForUpdate(conn, lowestAsk);
+
+                //this is a buying transaction, so transaction price is price of ask
+                MatchedTransaction mt = new MatchedTransaction(newBid, lowestAsk, newBid.getDate(), lowestAsk.getPrice());
+                MatchedTransactionDAO.add(conn, mt);  //transaction id will be generated here
+
+                //TODO: log transaction, make concurrent
+                logMatchedTransactions();
+
+                //TODO: send to back office, make concurrent
+
+
+                //update latest price
+                updateLatestPrice(mt);
+
+                //update transaction id in bid and ask, and save to database
+                newBid.setTransactionId(mt.getTransactionId());
+                lowestAsk.setTransactionID(mt.getTransactionId());
+                bidDAO.update(conn, newBid);
+                askDAO.update(conn, lowestAsk);
+
+                //finished transaction, release locks
+                conn.commit();
+
+            } catch (SQLException e) {
+                
+                e.printStackTrace();
+                
+                //error! rollback.
+                if (conn != null) {
+                    conn.rollback();
+                }
+
+            } finally {
+
+                if (conn != null) {
+                    conn.close();
+                }
+
+            }
         }
 
-        //matched:
-
-        //create transaction
-        //this is a buying transaction, so transaction price is price of ask
-        MatchedTransaction mt = new MatchedTransaction(newBid, lowestAsk, newBid.getDate(), lowestAsk.getPrice());
-        MatchedTransactionDAO mtDAO = new MatchedTransactionDAO();
-        mtDAO.add(mt);  //transaction id will be generated here
-
-        //update transactionID in ask and bid
-        BidDAO bidDAO = new BidDAO();
-        AskDAO askDAO = new AskDAO();
-
-        newBid.setTransactionId(mt.getTransactionId());
-        bidDAO.update(newBid);
-        lowestAsk.setTransactionID(mt.getTransactionId());
-        askDAO.update(lowestAsk);
-
-        //log
-        logMatchedTransactions();
-
-        //update latest price
-        updateLatestPrice(mt);
-
-        //TODO: send to back end office 
-
-        //acknowledge bid
+        //acknowledge bid, even if match failed.
         return true;
     }
 
     // call this method immediatley when a new ask (selling order) comes in
     public void placeNewAskAndAttemptMatch(Ask newAsk) throws Exception {
 
+        //add ask to database and check for match
         ExecutorService executor = Executors.newFixedThreadPool(2);
         List<Future<Object[]>> results = executor.invokeAll(asList(new AddEntityOperation(newAsk), new CheckMatchOperation(newAsk)));
         executor.shutdown();
@@ -266,45 +358,73 @@ public class ExchangeBean {
 
         for (Future<Object[]> result : results) {
             Object[] resultArray = result.get();
-
             if (resultArray != null) {
                 highestBid = (Bid) resultArray[0];
                 isMatched = Boolean.parseBoolean((String) resultArray[1]);
             }
         }
+
+        System.out.println("isMatched = " + isMatched);
+        
         //matched:
         if (isMatched) {
 
-            //save ask to database
-            AskDAO askDAO = new AskDAO();
+            Connection conn = null;
 
+            try {
+                
+                conn = ConnectionFactory.getInstance().getConnection();
+                conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+                conn.setAutoCommit(false);
+                
+                BidDAO bidDAO = new BidDAO();
+                AskDAO askDAO = new AskDAO();
+                
+                //lock ask and bid for update
+                bidDAO.lockForUpdate(conn, highestBid);
+                askDAO.lockForUpdate(conn, newAsk);
+                
+                //create transaction and save in database
+                //this is a selling transaction, so transaction price is the price of bid
+                MatchedTransaction mt = new MatchedTransaction(highestBid, newAsk, newAsk.getDate(), highestBid.getPrice());
+                MatchedTransactionDAO.add(conn, mt);    //transactionID will also be generated at the same time.
 
-            //get highest bid for stock
-            BidDAO bidDAO = new BidDAO();
+                //TODO: log transaction, make concurrent
+                logMatchedTransactions();
 
-            //create transaction
-            //this is a selling transaction, so transaction price is the price of bid
-            MatchedTransaction mt = new MatchedTransaction(highestBid, newAsk, newAsk.getDate(), highestBid.getPrice());
+                //TODO: send to back office, make concurrent
+                
+                //update latest price
+                updateLatestPrice(mt);
+                
+                //update transaction id in bid and ask, and save to database
+                highestBid.setTransactionId(mt.getTransactionId());
+                newAsk.setTransactionID(mt.getTransactionId());
+                bidDAO.update(conn, highestBid);
+                askDAO.update(conn, newAsk);
+                
+                //finished, release locks
+                conn.commit();
+                
+            } catch (SQLException e) {
 
-            //save transaction
-            MatchedTransactionDAO mtDAO = new MatchedTransactionDAO();
-            mtDAO.add(mt);
+                e.printStackTrace();
+                
+                if (conn != null) {
+                    conn.rollback();
+                }
 
-            //update transaction id in bid and ask
-            highestBid.setTransactionId(mt.getTransactionId());
-            bidDAO.update(highestBid);
-            newAsk.setTransactionID(mt.getTransactionId());
-            askDAO.update(newAsk);
+            } finally {
 
-            //update latest price
-            updateLatestPrice(mt);
+                if (conn != null) {
+                    conn.close();
+                }
 
-            //log transaction
-            logMatchedTransactions();
+            }
 
-            //TODO: send to back office
         }
-
+        
+        
     }
 
     // updates either latestPriceForSmu, latestPriceForNus or latestPriceForNtu

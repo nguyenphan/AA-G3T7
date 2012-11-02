@@ -13,25 +13,15 @@ import java.util.ArrayList;
 
 public class MatchedTransactionDAO {
 
-    Connection connection = null;
-    PreparedStatement ptmt = null;
-    ResultSet resultSet = null;
-
-    public MatchedTransactionDAO() {
-    }
-
-    private Connection getConnection() throws SQLException {
-        Connection conn;
-        conn = ConnectionFactory.getInstance().getConnection();
-        return conn;
-    }
-
-    public void add(MatchedTransaction mt) {
+    public static void add(Connection conn, MatchedTransaction mt) throws SQLException{
+        
+        PreparedStatement ptmt = null;        
+        String queryString = "INSERT INTO stock_transaction "
+                + "SET bidID=?,askID=?,price=?,trans_date=?";
+        
         try {
-            String queryString = "INSERT INTO stock_transaction "
-                    + "SET bidID=?,askID=?,price=?,trans_date=?";
-            connection = getConnection();
-            ptmt = connection.prepareStatement(queryString, Statement.RETURN_GENERATED_KEYS);
+            
+            ptmt = conn.prepareStatement(queryString, Statement.RETURN_GENERATED_KEYS);
             ptmt.setInt(1, mt.getBidID());
             ptmt.setInt(2, mt.getAskID());
             ptmt.setInt(3, mt.getPrice());
@@ -39,15 +29,20 @@ public class MatchedTransactionDAO {
             ptmt.executeUpdate();
             
             ResultSet generatedKeys = ptmt.getGeneratedKeys();
-            if(generatedKeys.next()){
-                mt.setTransactionId(generatedKeys.getInt(1));
-            }else{
-                throw new SQLException("Failed to create Matched Transaction, no generated ID obtained.");
-            }
+            generatedKeys.next();
+            mt.setTransactionId(generatedKeys.getInt(1));
             
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            
+            throw e;    //pass back to caller
+            
         } finally {
+            
+            //release resources
+            if(ptmt!=null) ptmt.close();
+            
         }
     }
+    
+    
 }

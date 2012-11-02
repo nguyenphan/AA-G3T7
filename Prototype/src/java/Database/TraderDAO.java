@@ -56,18 +56,27 @@ public class TraderDAO {
         
     }
 
-    public void update(Trader trader) {
+    public void update(Connection conn, Trader trader) throws SQLException{
+        
+        String queryString = "UPDATE trader SET credit=? WHERE username=?";
+        PreparedStatement ptmt = null;
+        
         try {
-            String queryString = "UPDATE trader SET credit=? WHERE username=?";
-            connection = getConnection();
-            ptmt = connection.prepareStatement(queryString);
+            
+            ptmt = conn.prepareStatement(queryString);
             ptmt.setInt(1, trader.getCredit());
             ptmt.setString(2, trader.getUsername());
             ptmt.executeUpdate();
-        } catch (Exception e) {
-            DatabaseConnectionString.getInstance().switchConnectionString();
-            this.update(trader);
+        
+        } catch (SQLException e) {
+            
+            throw e;    //pass to call to handle
+            
         } finally {
+            
+            //release resources
+            if(ptmt!=null) ptmt.close();
+        
         }
 
     }
@@ -107,41 +116,11 @@ public class TraderDAO {
         }
         return traders;
     }
-
-    
-    //TODO: Delete this
-    public Trader getTraderWithUsername(String username) throws SQLException{
-        
-        String queryString = "SELECT * FROM trader where username = ?";
-            
-        try {
-            
-            connection = getConnection();
-            ptmt = connection.prepareStatement(queryString);
-            ptmt.setString(1, username);
-            resultSet = ptmt.executeQuery();
-
-            while (resultSet.next()) {
-                return new Trader(username, resultSet.getInt("credit"));
-            }
-
-        } catch (SQLException e) {
-            DatabaseConnectionString.getInstance().switchConnectionString();
-            e.printStackTrace();
-            return this.getTraderWithUsername(username);
-        } finally {
-            
-            //release resources
-            if(ptmt!=null) ptmt.close();
-            if(connection!=null) connection.close();
-            
-        }
-
-        return null;
-    }
-    
+ 
     public Trader getTraderWithUsername(Connection conn, String username) throws SQLException{
         
+        
+        PreparedStatement ptmt = null;
         String queryString = "SELECT * FROM trader where username = ?";
             
         try {

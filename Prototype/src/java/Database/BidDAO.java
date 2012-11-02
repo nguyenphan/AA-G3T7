@@ -25,49 +25,89 @@ public class BidDAO {
         return conn;
     }
 
-    public void add(Bid bid) {
+    public void add(Connection conn, Bid bid) throws SQLException{
+        
+        PreparedStatement ptmt = null;
+        String queryString = "INSERT INTO bid SET username=?,stockName=?,price=?,order_date=?";
+        
         try{
-            String queryString = "INSERT INTO bid "
-                    + "SET username=?,stockName=?,price=?,order_date=?";
-            connection = getConnection();
-            ptmt = connection.prepareStatement(queryString, Statement.RETURN_GENERATED_KEYS);
+            
+            ptmt = conn.prepareStatement(queryString, Statement.RETURN_GENERATED_KEYS);
             ptmt.setString(1, bid.getUserId());
             ptmt.setString(2, bid.getStock());
             ptmt.setInt(3, bid.getPrice());
             ptmt.setLong(4, bid.getTime());
             ptmt.executeUpdate();
             
+            //set bid id to bid object
             ResultSet generatedKeys = ptmt.getGeneratedKeys();
-            if(generatedKeys.next()){
-                bid.setBidId(generatedKeys.getInt(1));
-            }else{
-                throw new SQLException("Failed to create Bid, no generated ID obtained.");
-            }
+            generatedKeys.next();
+            bid.setBidId(generatedKeys.getInt(1));
             
-        } catch (Exception e) {
-           e.printStackTrace();
+        } catch (SQLException e) {
+            
+            throw e; //pass to caller to handle
+           
         } finally {
+            
+            //release resources
+            if(ptmt!=null) ptmt.close();
             
         }
     }
     
-    public boolean update(Bid bid) {
+    
+    
+    public void update(Connection conn, Bid bid) throws SQLException{
+        
+        PreparedStatement ptmt = null;
+        String queryString = "UPDATE bid SET transactionID = ? where bidID = ?";
+        
         try{
-            String queryString = "UPDATE bid SET transactionID = ? where bidID = ?";
-            connection = getConnection();
-            ptmt = connection.prepareStatement(queryString);
+            
+            ptmt = conn.prepareStatement(queryString);
             ptmt.setInt(1, bid.getTransactionId());
             ptmt.setInt(2, bid.getBidId());
             ptmt.executeUpdate();
-        } catch (Exception e) {
-           e.printStackTrace();
-           return false;
+            
+        } catch (SQLException e) {
+            
+           throw e; //pass back to caller
+           
         } finally {
+            
+            //release resources
+            if (ptmt!=null) ptmt.close();
             
         }
         
-        return true;
     }
+    
+    public void lockForUpdate(Connection conn, Bid bid) throws SQLException{
+        
+        PreparedStatement ptmt = null;
+        String query = "SELECT * FROM bid "
+                + "WHERE bidID=? "
+                + "FOR UPDATE";     
+        
+        try {
+            
+            ptmt = conn.prepareStatement(query);
+            ptmt.setInt(1, bid.getBidId());
+            ptmt.executeQuery();
+            
+        } catch (SQLException e) {
+            
+            throw e;    //pass back to caller
+            
+        }finally{
+            
+            //release resources
+            if (ptmt!=null) ptmt.close();
+        }
+        
+    }
+       
     
     public ArrayList<Bid> getAllBid() {
         
@@ -153,15 +193,17 @@ public class BidDAO {
         return unfulfilledAsks;
     }
     
-    public Bid getHighestBidForStock(String stockName){
+    public Bid getHighestBidForStock(Connection conn, String stockName) throws SQLException{
+        
+        PreparedStatement ptmt = null;
+        String query = "SELECT * FROM bid "
+                + "WHERE transactionID IS NULL AND stockName=?"
+                + "ORDER by price DESC, order_date ASC "
+                + "LIMIT 1;";        
+        
         try {
-            String query = "SELECT * FROM bid "
-                    + "WHERE transactionID IS NULL AND stockName=?"
-                    + "ORDER by price DESC, order_date ASC "
-                    + "LIMIT 1;";
             
-            connection = getConnection();
-            ptmt = connection.prepareStatement(query);
+            ptmt = conn.prepareStatement(query);
             ptmt.setString(1, stockName);
             resultSet = ptmt.executeQuery();
             
@@ -174,11 +216,18 @@ public class BidDAO {
                         resultSet.getInt("transactionID"));
             }
             
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            
+            throw e;    //pass back to caller
+            
+        }finally{
+            
+            //release resources
+            if (ptmt!=null) ptmt.close();
         }
         
         return null;
+        
     }
     
     public void clearUnfulfilledBids(){
