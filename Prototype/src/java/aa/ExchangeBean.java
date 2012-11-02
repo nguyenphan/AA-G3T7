@@ -50,11 +50,11 @@ public class ExchangeBean {
     // returns a String of unfulfilled bids for a particular stock
     // returns an empty string if no such bid
     // bids are separated by <br> for display on HTML page
-    public String getUnfulfilledBidsForDisplay(String stock) throws SQLException{
-        
+    public String getUnfulfilledBidsForDisplay(String stock) throws SQLException {
+
         Connection conn = null;
-        try{
-            
+        try {
+
             conn = ConnectionFactory.getInstance().getConnection();
             ArrayList<Bid> unfulfilledBids = BidDAO.getUnfulfilledBidsForStock(conn, stock);
             StringBuilder returnString = new StringBuilder();
@@ -62,30 +62,32 @@ public class ExchangeBean {
                 returnString.append(bid.toString());
                 returnString.append("<br />");
             }
-            return returnString.toString();   
-            
-        }catch(SQLException e){
-            
+            return returnString.toString();
+
+        } catch (SQLException e) {
+
             e.printStackTrace();
             return "Sorry, we are unable to retrieve the unfulfilled bids for you now. :(";
-            
-        }finally{
-            
+
+        } finally {
+
             //release connection
-            if(conn!=null) conn.close();
-            
+            if (conn != null) {
+                conn.close();
+            }
+
         }
-        
+
     }
 
     // returns a String of unfulfilled asks for a particular stock
     // returns an empty string if no such ask
     // asks are separated by <br> for display on HTML page
-    public String getUnfulfilledAsks(String stock) throws SQLException{
-        
+    public String getUnfulfilledAsks(String stock) throws SQLException {
+
         Connection conn = null;
-        try{
-            
+        try {
+
             conn = ConnectionFactory.getInstance().getConnection();
             ArrayList<Ask> unfulfilledAsks = AskDAO.getUnfulfilledAsksForStock(conn, stock);
 
@@ -95,19 +97,21 @@ public class ExchangeBean {
                 returnString.append("<br />");
             }
             return returnString.toString();
-        
-        }catch(SQLException e){
-            
+
+        } catch (SQLException e) {
+
             e.printStackTrace();
             return "Sorry, we are unable to retrieve the unfulfilled asks for you now. :(";
-            
-        }finally{
-            
+
+        } finally {
+
             //release connection
-            if(conn!=null) conn.close();
-            
+            if (conn != null) {
+                conn.close();
+            }
+
         }
-        
+
     }
 
     // returns the highest bid for a particular stock
@@ -273,18 +277,32 @@ public class ExchangeBean {
 
     // returns a string of HTML table rows code containing the list of user IDs and their remaining credits
     // this method is used by viewOrders.jsp for debugging purposes
-    public String getAllCreditRemainingForDisplay() {
+    public String getAllCreditRemainingForDisplay() throws SQLException {
 
-        String returnString = "";
+        Connection conn = null;
+        try {
+            
+            conn = ConnectionFactory.getInstance().getConnection();
+            String returnString = "";
 
-        TraderDAO traderDAO = new TraderDAO();
-        ArrayList<Trader> traders = traderDAO.getAllTraders();
+            ArrayList<Trader> traders = TraderDAO.getAllTraders(conn);
 
-        for (Trader t : traders) {
-            returnString += "<tr><td>" + t.getUsername() + "</td><td>" + t.getCredit() + "</td></tr>";
+            for (Trader t : traders) {
+                returnString += "<tr><td>" + t.getUsername() + "</td><td>" + t.getCredit() + "</td></tr>";
+            }
+
+            return returnString;
+            
+        } catch (SQLException e) {
+            
+            e.printStackTrace();
+            return "Sorry, we are unable to retrieve the credits for you now. :(";
+
+        } finally {
+            
+            if(conn!=null) conn.close();
+            
         }
-
-        return returnString;
     }
 
     // call this method immediatley when a new bid (buying order) comes in
