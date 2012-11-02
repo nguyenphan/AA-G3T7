@@ -56,7 +56,7 @@ public class TraderDAO {
         
     }
 
-    public void update(Connection conn, Trader trader) throws SQLException{
+    public static void update(Connection conn, Trader trader) throws SQLException{
         
         String queryString = "UPDATE trader SET credit=? WHERE username=?";
         PreparedStatement ptmt = null;
@@ -117,7 +117,7 @@ public class TraderDAO {
         return traders;
     }
  
-    public Trader getTraderWithUsername(Connection conn, String username) throws SQLException{
+    public static Trader getTraderWithUsername(Connection conn, String username) throws SQLException{
         
         
         PreparedStatement ptmt = null;
@@ -127,7 +127,7 @@ public class TraderDAO {
             
             ptmt = conn.prepareStatement(queryString);
             ptmt.setString(1, username);
-            resultSet = ptmt.executeQuery();
+            ResultSet resultSet = ptmt.executeQuery();
 
             while (resultSet.next()) {
                 return new Trader(username, resultSet.getInt("credit"));
