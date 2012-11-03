@@ -6,6 +6,7 @@
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@ page import="aa.*" %>
+<%@ page import="java.sql.*" %>
 <jsp:useBean id="exchangeBean" scope="application" class="aa.ExchangeBean" />
 
 <!DOCTYPE html>
@@ -15,11 +16,19 @@
     <title>End Trading Day</title>
   </head>
   <body>
-    <h1>Your Trading Day has ended!</h1>
 
     <%
-      exchangeBean.endTradingDay(); // clean up instance variables
-      session.invalidate();
+        try{
+            
+            exchangeBean.endTradingDay(); // clean up instance variables
+            session.invalidate();
+            out.print("<h1>Your Trading Day has ended!</h1>");
+            
+        }catch(SQLException e){
+            
+            out.print("<h1>Sorry, an error has occured, please try again later. :(</h1>");
+            
+        }
     %>
 
   </body>

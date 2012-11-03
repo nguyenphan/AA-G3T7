@@ -18,24 +18,13 @@ import java.util.ArrayList;
 public class TraderDAO {
 
     final static int DEFAULT_CREDIT_LIMIT = 1000000;
-    Connection connection = null;
-    PreparedStatement ptmt = null;
-    ResultSet resultSet = null;
+    
+    public static void add(Connection conn, Trader trader) throws SQLException {
 
-    public TraderDAO() {
-    }
-
-    private Connection getConnection() throws SQLException {
-        Connection conn;
-        conn = ConnectionFactory.getInstance().getConnection();
-        return conn;
-    }
-
-    public void add(Connection conn, Trader trader) throws SQLException {
-
+        PreparedStatement ptmt = null;
+        String queryString = "INSERT INTO trader VALUE(?,?)";
+        
         try {
-
-            String queryString = "INSERT INTO trader VALUE(?,?)";
 
             ptmt = conn.prepareStatement(queryString);
             ptmt.setString(1, trader.getUsername());
@@ -85,16 +74,23 @@ public class TraderDAO {
 
     }
 
-    public void resetCreditsForAllTraders() {
+    public static void resetCreditsForAllTraders(Connection conn) throws SQLException{
+        
+        PreparedStatement ptmt = null;
+        String queryString = "UPDATE trader SET credit=?";
+            
         try {
-            String queryString = "UPDATE trader SET credit=?";
-            connection = getConnection();
-            ptmt = connection.prepareStatement(queryString);
+        
+            ptmt = conn.prepareStatement(queryString);
             ptmt.setInt(1, DEFAULT_CREDIT_LIMIT);
             ptmt.executeUpdate();
-        } catch (Exception e) {
-            e.printStackTrace();
+            
+        } catch (SQLException e) {
+            
+             throw e;   //pass back to caller
+            
         } finally {
+            
         }
 
     }

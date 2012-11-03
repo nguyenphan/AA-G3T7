@@ -1,29 +1,14 @@
 package Database;
 
 import Entity.Bid;
-
 import java.sql.Connection;
-import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
+import java.sql.Statement;
 import java.util.ArrayList;
 
 public class BidDAO {
-
-    Connection connection = null;
-    PreparedStatement ptmt = null;
-    ResultSet resultSet = null;
-
-    public BidDAO() {
-    }
-
-    private Connection getConnection() throws SQLException {
-        Connection conn;
-        conn = ConnectionFactory.getInstance().getConnection();
-        return conn;
-    }
 
     public static void add(Connection conn, Bid bid) throws SQLException {
 
@@ -58,125 +43,15 @@ public class BidDAO {
         }
     }
 
-    public static void update(Connection conn, Bid bid) throws SQLException {
+    public static ArrayList<Bid> getUnfulfilledBidsForStock(Connection conn, String stockName) throws SQLException {
 
-        PreparedStatement ptmt = null;
-        String queryString = "UPDATE bid SET transactionID = ? where bidID = ?";
-
-        try {
-
-            ptmt = conn.prepareStatement(queryString);
-            ptmt.setInt(1, bid.getTransactionId());
-            ptmt.setInt(2, bid.getBidId());
-            ptmt.executeUpdate();
-
-        } catch (SQLException e) {
-
-            throw e; //pass back to caller
-
-        } finally {
-
-            //release resources
-            if (ptmt != null) {
-                ptmt.close();
-            }
-
-        }
-
-    }
-
-    public static void lockForUpdate(Connection conn, Bid bid) throws SQLException {
-
-        PreparedStatement ptmt = null;
-        String query = "SELECT * FROM bid "
-                + "WHERE bidID=? "
-                + "FOR UPDATE";
-
-        try {
-
-            ptmt = conn.prepareStatement(query);
-            ptmt.setInt(1, bid.getBidId());
-            ptmt.executeQuery();
-
-        } catch (SQLException e) {
-
-            throw e;    //pass back to caller
-
-        } finally {
-
-            //release resources
-            if (ptmt != null) {
-                ptmt.close();
-            }
-        }
-
-    }
-
-    public ArrayList<Bid> getAllBid() {
-
-        ArrayList allBids = new ArrayList();
-
-        try {
-            String query = "Select * from bid";
-            connection = getConnection();
-            ptmt = connection.prepareStatement(query);
-
-            resultSet = ptmt.executeQuery();
-
-            while (resultSet.next()) {
-                Bid aBid = new Bid(resultSet.getInt("bidID"),
-                        resultSet.getString("username"),
-                        resultSet.getString("stockName"),
-                        resultSet.getInt("price"),
-                        resultSet.getLong("order_date"),
-                        resultSet.getInt("transactionID"));
-                allBids.add(aBid);
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-        }
-
-        return allBids;
-    }
-
-    public ArrayList<Bid> getAllBidForUsername(String username) {
-        ArrayList allBids = new ArrayList();
-
-        try {
-            String query = "Select * from bid where username = ?";
-            connection = getConnection();
-            ptmt = connection.prepareStatement(query);
-            ptmt.setString(1, username);
-
-            resultSet = ptmt.executeQuery();
-
-            while (resultSet.next()) {
-                Bid aBid = new Bid(resultSet.getInt("bidID"),
-                        resultSet.getString("username"),
-                        resultSet.getString("stockName"),
-                        resultSet.getInt("price"),
-                        resultSet.getLong("order_date"),
-                        resultSet.getInt("transactionID"));
-                allBids.add(aBid);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return allBids;
-    }
-
-    public static ArrayList<Bid> getUnfulfilledBidsForStock(Connection conn, String stockName) throws SQLException{
-        
         PreparedStatement ptmt = null;
         String query = "SELECT * FROM bid WHERE transactionID IS NULL AND stockName=?";
-            
+
         ArrayList unfulfilledAsks = new ArrayList();
 
         try {
-            
+
             ptmt = conn.prepareStatement(query);
             ptmt.setString(1, stockName);
 
@@ -191,15 +66,17 @@ public class BidDAO {
                         resultSet.getInt("transactionID"));
                 unfulfilledAsks.add(ask);
             }
-            
+
         } catch (SQLException e) {
-            
+
             throw e; //pass back to caller
-            
-        }finally{
-            
-            if(ptmt!=null) ptmt.close();
-            
+
+        } finally {
+
+            if (ptmt != null) {
+                ptmt.close();
+            }
+
         }
 
         return unfulfilledAsks;
@@ -243,17 +120,81 @@ public class BidDAO {
         return null;
 
     }
+    
+    public static void lockForUpdate(Connection conn, Bid bid) throws SQLException {
 
-    public void clearUnfulfilledBids() {
+        PreparedStatement ptmt = null;
+        String query = "SELECT * FROM bid "
+                + "WHERE bidID=? "
+                + "FOR UPDATE";
+
         try {
-            String query = "DELETE FROM bid WHERE transactionID IS NULL";
 
-            connection = getConnection();
-            ptmt = connection.prepareStatement(query);
+            ptmt = conn.prepareStatement(query);
+            ptmt.setInt(1, bid.getBidId());
+            ptmt.executeQuery();
+
+        } catch (SQLException e) {
+
+            throw e;    //pass back to caller
+
+        } finally {
+
+            //release resources
+            if (ptmt != null) {
+                ptmt.close();
+            }
+        }
+
+    }
+
+    public static void update(Connection conn, Bid bid) throws SQLException {
+
+        PreparedStatement ptmt = null;
+        String queryString = "UPDATE bid SET transactionID = ? where bidID = ?";
+
+        try {
+
+            ptmt = conn.prepareStatement(queryString);
+            ptmt.setInt(1, bid.getTransactionId());
+            ptmt.setInt(2, bid.getBidId());
             ptmt.executeUpdate();
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+
+            throw e; //pass back to caller
+
+        } finally {
+
+            //release resources
+            if (ptmt != null) {
+                ptmt.close();
+            }
+
+        }
+
+    }
+
+    public static void clearUnfulfilledBids(Connection conn) throws SQLException {
+
+        PreparedStatement ptmt = null;
+        String query = "DELETE FROM bid WHERE transactionID IS NULL";
+
+        try {
+
+            ptmt = conn.prepareStatement(query);
+            ptmt.executeUpdate();
+
+        } catch (SQLException e) {
+
+            throw e;    //pass back to caller
+
+        } finally {
+
+            if (ptmt != null) {
+                ptmt.close();
+            }
+
         }
 
     }

@@ -6,6 +6,7 @@ import concurrency.*;
 import java.io.*;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 import static java.util.Arrays.asList;
 import java.util.concurrent.ExecutorService;
@@ -29,22 +30,55 @@ public class ExchangeBean {
 
     // this method is called once at the end of each trading day. It can be called manually, or by a timed daemon
     // this is a good chance to "clean up" everything to get ready for the next trading day
-    public void endTradingDay() {
-        // reset attributes
-        latestPriceForSmu = -1;
-        latestPriceForNus = -1;
-        latestPriceForNtu = -1;
+    public void endTradingDay() throws SQLException {
 
-        // dump all unfulfilled buy and sell orders
-        BidDAO bidDAO = new BidDAO();
-        bidDAO.clearUnfulfilledBids();
+        Connection conn = null;
+        Statement st = null;
 
-        AskDAO askDAO = new AskDAO();
-        askDAO.clearUnfulfilledAsks();
+        try {
 
-        // reset all credit limits of users
-        TraderDAO traderDAO = new TraderDAO();
-        traderDAO.resetCreditsForAllTraders();
+            conn = ConnectionFactory.getInstance().getConnection();
+            conn.setAutoCommit(false);
+
+            //TODO: make concurrent
+
+            //lock bid, ask and trader tables for writing
+            st = conn.createStatement();
+            st.execute("LOCK TABLES bid WRITE, ask WRITE, trader WRITE");
+
+            // dump all unfulfilled buy and sell orders
+            BidDAO.clearUnfulfilledBids(conn);
+            AskDAO.clearUnfulfilledAsks(conn);
+
+            // reset all credit limits of users
+            TraderDAO.resetCreditsForAllTraders(conn);
+
+            // reset attributes
+            latestPriceForSmu = -1;
+            latestPriceForNus = -1;
+            latestPriceForNtu = -1;
+
+            //commit changes and release locks
+            conn.commit();
+
+        } catch (SQLException e) {
+
+            //error! rollback!
+            conn.rollback();
+            e.printStackTrace();
+            throw e;    //tell caller that an error occured
+
+        } finally {
+
+            if (conn != null) {
+                conn.close();
+            }
+            if (st != null) {
+                st.close();
+            }
+
+        }
+
     }
 
     // returns a String of unfulfilled bids for a particular stock
@@ -281,7 +315,7 @@ public class ExchangeBean {
 
         Connection conn = null;
         try {
-            
+
             conn = ConnectionFactory.getInstance().getConnection();
             String returnString = "";
 
@@ -292,16 +326,18 @@ public class ExchangeBean {
             }
 
             return returnString;
-            
+
         } catch (SQLException e) {
-            
+
             e.printStackTrace();
             return "Sorry, we are unable to retrieve the credits for you now. :(";
 
         } finally {
-            
-            if(conn!=null) conn.close();
-            
+
+            if (conn != null) {
+                conn.close();
+            }
+
         }
     }
 
