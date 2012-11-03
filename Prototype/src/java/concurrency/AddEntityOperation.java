@@ -21,7 +21,7 @@ public class AddEntityOperation implements Callable<Object[]> {
         this.objectToAdd = objectToAdd;
     }
     
-    public Object[] call() throws Exception {
+    public Object[] call() throws SQLException {
         
         Connection conn = null;
         
@@ -33,12 +33,11 @@ public class AddEntityOperation implements Callable<Object[]> {
             
             if (objectToAdd instanceof Ask) {
 
-                AskDAO askDAO = new AskDAO();
-                askDAO.add(conn,(Ask)objectToAdd);
+                AskDAO.add(conn,(Ask)objectToAdd);
+                
             } else {
 
-                BidDAO bidDAO = new BidDAO();
-                bidDAO.add(conn, (Bid)objectToAdd);
+                BidDAO.add(conn, (Bid)objectToAdd);
 
             }
             
@@ -46,7 +45,7 @@ public class AddEntityOperation implements Callable<Object[]> {
           
         }catch(SQLException e){
             
-            //TODO: handle exception
+            throw e;    //pass back to caller
             
         }finally{
             

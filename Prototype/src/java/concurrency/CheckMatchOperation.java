@@ -22,7 +22,7 @@ public class CheckMatchOperation implements Callable<Object[]> {
         this.objectToCompare = objectToCompare;
     }
 
-    public Object[] call() throws Exception {
+    public Object[] call() throws SQLException {
 
         Object[] returnData = new Object[2];
         if (objectToCompare instanceof Bid) {
@@ -67,8 +67,7 @@ public class CheckMatchOperation implements Callable<Object[]> {
         try {
 
             conn = ConnectionFactory.getInstance().getConnection();
-            AskDAO askDAO = new AskDAO();
-            return askDAO.getLowestAskForStock(conn, stock);
+            return AskDAO.getLowestAskForStock(conn, stock);
 
         } catch (SQLException e) {
 
@@ -90,8 +89,7 @@ public class CheckMatchOperation implements Callable<Object[]> {
         try {
 
             conn = ConnectionFactory.getInstance().getConnection();
-            BidDAO bidDAO = new BidDAO();
-            return bidDAO.getHighestBidForStock(conn, stock);
+            return BidDAO.getHighestBidForStock(conn, stock);
 
         } catch (SQLException e) {
 
