@@ -35,16 +35,15 @@ public class ProcessLoginServlet extends HttpServlet {
             conn.setAutoCommit(false);
             
             //get trader from database
-            TraderDAO traderDAO = new TraderDAO();
-            Trader trader = traderDAO.getTraderWithUsername(conn, username);    //note that trader, whether existant or not, will be locked
+            Trader trader = TraderDAO.getTraderWithUsername(conn, username);    //note that trader, whether existant or not, will be locked
             conn.commit();  //release lock, otherwise existant trader cannot be updated later, like for updating credits
             
             //if trader does not exist, create a new one.
             if (trader == null) {
                 
                 trader = new Trader(username);
-                traderDAO.getTraderWithUsername(conn, username);    //select again to get range lock
-                traderDAO.add(conn,trader); //add
+                TraderDAO.getTraderWithUsername(conn, username);    //select again to get range lock
+                TraderDAO.add(conn,trader); //add
                 conn.commit();  //release lock
                 
             }
