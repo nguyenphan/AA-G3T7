@@ -4,6 +4,6 @@ Prototype/nbproject/private/
 *.class
 
 # Package Files #
-*.jar
 *.war
 *.ear
+/Prototype/dist/
