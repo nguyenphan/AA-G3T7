@@ -27,7 +27,7 @@
     </head>
     
     <BODY OnLoad="document.myform.id.focus();">
-        <FORM name="myform" METHOD="POST" ACTION="processLogin" onsubmit="return checkForm(this)"> 
+        <FORM name="myform" METHOD="POST" ACTION="processLogin.jsp" onsubmit="return checkForm(this)"> 
             <table border="1">
                 <thead>
                     <tr>
