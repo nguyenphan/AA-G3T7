@@ -22,7 +22,7 @@
         <%
             
             String username = request.getParameter("id").trim();
-
+            String nextPage = "loginSuccess.jsp";
             Connection conn = null;
 
             try {
@@ -58,7 +58,8 @@
                     conn.rollback();
                 }
                 System.err.print("Transaction is rolled back.");
-
+                nextPage = "login.jsp?error=";
+                
             } finally {
 
                 //release connection
@@ -67,7 +68,7 @@
                 }
             }
 
-            RequestDispatcher rd = request.getRequestDispatcher("loginSuccess.jsp");
+            RequestDispatcher rd = request.getRequestDispatcher(nextPage);
             rd.forward(request, response);
 
         %> 
