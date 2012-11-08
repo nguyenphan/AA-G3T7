@@ -20,6 +20,7 @@ public class Bid {
         this.time = (new Date()).getTime();
     }
     //for retrieving from DB
+
     public Bid(int bidId, String username, String stock, int price, long time, int transactionId) {
         this.bidId = bidId;
         this.userId = username;
@@ -28,12 +29,12 @@ public class Bid {
         this.time = time;
         this.transactionId = transactionId;
     }
-    
+
     // getters
     public int getBidId() {
         return bidId;
     }
-    
+
     public String getStock() {
         return stock;
     }
@@ -46,30 +47,29 @@ public class Bid {
         return userId;
     }
 
-    public long getTime(){
+    public long getTime() {
         return time;
     }
-    
-    public Date getDate(){
+
+    public Date getDate() {
         return new Date(time);
     }
-    
+
     public int getTransactionId() {
         return transactionId;
     }
-    
+
     //setter
-    public void setBidId(int bidId){
+    public void setBidId(int bidId) {
         this.bidId = bidId;
     }
-    
+
     public void setTransactionId(int transactionId) {
         this.transactionId = transactionId;
     }
 
     @Override
     public String toString() {
-        return "Bid{" + "bidId=" + bidId + ", stock=" + stock + ", price=" + price + ", userId=" + userId + ", time=" + time + ", transactionId=" + transactionId + '}';
+        return "Bid{ bidId:" + bidId + ", stock: " + stock + ", price: " + price + ", userId: " + userId + ", date: " + getDate() + ", transactionId:" + transactionId + '}';
     }
-
 }

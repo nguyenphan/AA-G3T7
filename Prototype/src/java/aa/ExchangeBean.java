@@ -12,7 +12,8 @@ import static java.util.Arrays.asList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import log.LogProducer;
+import log.MatchLogProducer;
+import log.RejectLogProducer;
 
 public class ExchangeBean {
 
@@ -333,6 +334,8 @@ public class ExchangeBean {
     // TODO: Concurrency Lock
     private void logRejectedBuyOrder(Bid b) {
         try {
+            RejectLogProducer producer = new RejectLogProducer();
+            producer.sendMessage(b.toString());
             PrintWriter outFile = new PrintWriter(new FileWriter(REJECTED_BUY_ORDERS_LOG_FILE, true));
             outFile.append(b.toString() + "\n");
             outFile.close();
@@ -355,7 +358,7 @@ public class ExchangeBean {
             PrintWriter outFile = new PrintWriter(new FileWriter(MATCH_LOG_FILE, true));
             outFile.append(matchedTransaction + "\n");
             //send log to logConsumer
-            LogProducer producer = new LogProducer();
+            MatchLogProducer producer = new MatchLogProducer();
             producer.sendMessage(matchedTransaction);
             
             outFile.close();
