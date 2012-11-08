@@ -25,36 +25,44 @@ public class AddEntityOperation implements Callable<Object[]> {
         
         Connection conn = null;
         
-        try{
-            
-            conn = ConnectionFactory.getInstance().getConnection();
-            conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);  //inserting stuff, use range locks
-            conn.setAutoCommit(false);
-            
-            if (objectToAdd instanceof Ask) {
+        boolean okay = false;
+        
+        while(!okay){
 
-                AskDAO.add(conn,(Ask)objectToAdd);
-                
-            } else {
+            try{
 
-                BidDAO.add(conn, (Bid)objectToAdd);
+                conn = ConnectionFactory.getInstance().getConnection();
+                conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);  //inserting stuff, use range locks
+                conn.setAutoCommit(false);
+
+                if (objectToAdd instanceof Ask) {
+
+                    AskDAO.add(conn,(Ask)objectToAdd);
+
+                } else {
+
+                    BidDAO.add(conn, (Bid)objectToAdd);
+
+                }
+
+                okay = true;
+                conn.commit();  //release lock
+
+            }catch(SQLException e){
+
+                System.err.println(e.getMessage());
+
+            }finally{
+
+                //release connection
+                if(conn!=null) conn.close();
 
             }
-            
-            conn.commit();  //release lock
-          
-        }catch(SQLException e){
-            
-            throw e;    //pass back to caller
-            
-        }finally{
-            
-            //release connection
-            if(conn!=null) conn.close();
-            
+
         }
         
         return null;
     }
+        
 
 }

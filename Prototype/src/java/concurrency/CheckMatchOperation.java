@@ -64,44 +64,55 @@ public class CheckMatchOperation implements Callable<Object[]> {
     public Ask getLowestAsk(String stock) throws SQLException {
 
         Connection conn = null;
-        try {
+        boolean okay = false;
+        while(!okay){
+            try {
 
-            conn = ConnectionFactory.getInstance().getConnection();
-            return AskDAO.getLowestAskForStock(conn, stock);
+                conn = ConnectionFactory.getInstance().getConnection();
+                okay = true;
+                return AskDAO.getLowestAskForStock(conn, stock);
 
-        } catch (SQLException e) {
+            } catch (SQLException e) {
 
-            throw e;    //pass back to caller to handle
+                System.err.println(e.getMessage());
+                
+            } finally {
 
-        } finally {
+                if (conn != null) {
+                    conn.close();
+                }
 
-            if (conn != null) {
-                conn.close();
             }
-
         }
+        return null;
 
     }
 
     public Bid getHighestBid(String stock) throws SQLException {
 
         Connection conn = null;
-        try {
+        
+        boolean okay = false;
+        while(!okay){
+            try {
 
-            conn = ConnectionFactory.getInstance().getConnection();
-            return BidDAO.getHighestBidForStock(conn, stock);
+                conn = ConnectionFactory.getInstance().getConnection();
+                okay = true;
+                return BidDAO.getHighestBidForStock(conn, stock);
 
-        } catch (SQLException e) {
+            } catch (SQLException e) {
 
-            throw e;    //pass back to caller to handle
+                System.err.println(e.getMessage());
+                
+            } finally {
 
-        } finally {
+                if (conn != null) {
+                    conn.close();
+                }
 
-            if (conn != null) {
-                conn.close();
             }
-
         }
+        return null;
 
     }
 }
