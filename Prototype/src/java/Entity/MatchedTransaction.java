@@ -11,13 +11,21 @@ public class MatchedTransaction {
     private Ask ask;
     private Date date;
     private int price;
-
-    // constructor
+    private boolean sent;
+    
+    // constructor for new match
     public MatchedTransaction(Bid b, Ask a, Date d, int p) {
         this.bid = b;
         this.ask = a;
         this.date = d;
         this.price = p;
+        this.sent = false;
+    }
+    
+    // constructor for existing match
+    public MatchedTransaction(int transactionID, boolean s) {
+        this.transactionId = transactionID;
+        this.sent = s;
     }
 
     // getters
@@ -53,9 +61,17 @@ public class MatchedTransaction {
         return date;
     }
     
+    public boolean getSentToBackOffice(){
+        return sent;
+    }
+    
     //setters
     public void setTransactionId(int transactionId) {
         this.transactionId = transactionId;
+    }
+    
+    public void setSendToBackOffice(boolean s){
+        this.sent = s;
     }
     
     @Override

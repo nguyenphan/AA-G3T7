@@ -21,16 +21,16 @@ public class LogProducer implements ExceptionListener{
     String password = null;
     //for master web server
     String localDestinationName = "master.local.request";
-    //String foreignDestinationName = "master.foreign.request";
+    //String foreignDestinationName = "slave.foreign.request";
     String localReplyDestinationName = "master.local.reply";
-    //String foreignReplyDestinationName = "master.foreign.reply";
+    //String foreignReplyDestinationName = "slave.foreign.reply";
     
     //for slave web server
     
     //String localDestinationName = "slave.local.request";
-    String foreignDestinationName = "slave.foreign.request";
+    String foreignDestinationName = "master.foreign.request";
     //String localReplyDestinationName = "slave.local.repforeignly";
-    String foreignReplyDestinationName = "slave.foreign.reply";
+    String foreignReplyDestinationName = "master.foreign.reply";
     
     
     //variables

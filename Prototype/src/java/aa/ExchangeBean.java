@@ -12,6 +12,7 @@ import static java.util.Arrays.asList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import log.LogProducer;
 
 public class ExchangeBean {
 
@@ -348,13 +349,15 @@ public class ExchangeBean {
 
     // call this to append all matched transactions in matchedTransactions to log file and clear matchedTransactions
     // TODO: Concurrency Lock
-    private void logMatchedTransactions() {
+    private void logMatchedTransactions(String matchedTransaction) {
+        System.out.println(matchedTransaction);
         try {
             PrintWriter outFile = new PrintWriter(new FileWriter(MATCH_LOG_FILE, true));
-            for (MatchedTransaction m : matchedTransactions) {
-                outFile.append(m.toString() + "\n");
-            }
-            matchedTransactions.clear(); // clean this out
+            outFile.append(matchedTransaction + "\n");
+            //send log to logConsumer
+            LogProducer producer = new LogProducer();
+            producer.sendMessage(matchedTransaction);
+            
             outFile.close();
         } catch (IOException e) {
             // Think about what should happen here...
@@ -461,7 +464,7 @@ public class ExchangeBean {
                     MatchedTransactionDAO.add(conn, mt);  //transaction id will be generated here
 
                     //TODO: log transaction, make concurrent
-                    logMatchedTransactions();
+                    logMatchedTransactions(mt.toString());
 
                     //TODO: send to back office, make concurrent
 
@@ -548,7 +551,7 @@ public class ExchangeBean {
                     MatchedTransactionDAO.add(conn, mt);    //transactionID will also be generated at the same time.
 
                     //TODO: log transaction, make concurrent
-                    logMatchedTransactions();
+                    logMatchedTransactions(mt.toString());
 
                     //TODO: send to back office, make concurrent
 
@@ -617,7 +620,80 @@ public class ExchangeBean {
         return -1; // no such stock
     }
 
-    public boolean sendToBackOffice(String txnDescription) {
+    public boolean sendToBackOffice(String txnDescription) throws SQLException{
+        
+        int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
+        
+        Connection conn = null;
+        
+        boolean okay = false;
+        while(!okay){
+            
+            try{
+                
+                conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
+                conn.setAutoCommit(false);
+                
+                ArrayList<MatchedTransaction> unsentMTs = MatchedTransactionDAO.getUnsentMatchedTransactions(conn); //no locks
+                
+                for(MatchedTransaction mt: unsentMTs){
+                    
+                    MatchedTransaction mtFromDB = null;
+                    
+                    //lock row
+                    try{
+                        
+                        mtFromDB = MatchedTransactionDAO.lockForUpdate(conn, mt);
+                    
+                    }catch(SQLException e){ //match is being locked by another thread, continue
+                    
+                        continue;
+                    
+                    }
+                    
+                    //send to back office
+                    if(!mtFromDB.getSentToBackOffice()){    //check again in case match is already sent by another thread
+                    
+                        //send to back office-----
+                        
+                        //------------------------
+                        
+                        mt.setSendToBackOffice(true);
+                        
+                        //update database
+                        MatchedTransactionDAO.updateMatchedTransactions(conn, mt);
+                    
+                    }
+                    
+                    //release locks
+                    conn.commit();
+                    
+                }
+                
+                //everything went well, no need to retry
+                okay = true;
+                ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
+            
+            }catch(SQLException e){
+            
+                currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
+                System.err.println(e.getMessage());
+                
+            }finally{
+                
+                //release connection
+                if(conn!=null) conn.close();
+            
+            }
+            
+        }
+        
+        
+        
+        /*
+        
+        
+        
         aa.Service service = new aa.Service();
         boolean status = false;
 
@@ -634,6 +710,8 @@ public class ExchangeBean {
             // may come here if a time out or any other exception occurs
             // what should you do here??
         }
+        */
+        
         return false; // failure due to exception
     }
 }
