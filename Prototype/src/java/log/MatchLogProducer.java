@@ -17,7 +17,7 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 public class MatchLogProducer implements ExceptionListener{
 
     //parameters
-    String serverUrl = "tcp://localhost:61616";
+    String serverUrl = "tcp://192.168.1.111:61616";
     String userName = null;
     String password = null;
     //for master web server
