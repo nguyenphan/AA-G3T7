@@ -238,7 +238,7 @@ public class ExchangeBean {
 
             } catch (SQLException e) {
 
-                throw e;    //pass back to caller to handle
+                System.err.println(e.getMessage());
 
             } finally {
 
