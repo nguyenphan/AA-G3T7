@@ -93,7 +93,7 @@ public class MasterBOSender {
         try {
     
             List<String> commands = new ArrayList<String>();
-            commands.add("/sbin/ping");
+            commands.add("ping");
             commands.add("-c");
             commands.add("5");
             commands.add(ipAddress);

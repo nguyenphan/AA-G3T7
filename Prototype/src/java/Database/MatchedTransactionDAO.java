@@ -23,7 +23,7 @@ public class MatchedTransactionDAO {
             ptmt.setInt(1, mt.getBidID());
             ptmt.setInt(2, mt.getAskID());
             ptmt.setInt(3, mt.getPrice());
-            ptmt.setTime(4, new Time(mt.getDate().getTime()));
+            ptmt.setLong(4, mt.getDate().getTime());
             ptmt.setBoolean(5,mt.getSentToBackOffice());
             ptmt.executeUpdate();
             
