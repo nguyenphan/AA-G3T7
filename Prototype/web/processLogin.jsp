@@ -24,13 +24,13 @@
             String username = request.getParameter("id").trim();
             String nextPage = "loginSuccess.jsp";
             Connection conn = null;
-
+            int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
             boolean okay = false;
             while(!okay){
                 
                 try {
 
-                    conn = ConnectionFactory.getInstance().getConnection();
+                    conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
                     conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);  //enable range locks
                     conn.setAutoCommit(false);
 
@@ -52,9 +52,9 @@
                     session.setAttribute("userId", request.getParameter("id").trim());
                     session.setAttribute("authenticatedUser", true);
                     okay = true;
-
+                    ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
                 } catch (SQLException e) {
-
+                    currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
                     //rollback and display error
                     System.err.print(e.getMessage());
                     if (conn != null) {

@@ -5,6 +5,7 @@
 --%>
 <%@page import="Database.*" %>
 <%@page import="Entity.*" %>
+<%@page import="java.sql.Connection" %>
 <%@page import="aa.*" %>
 <jsp:useBean id="exchangeBean" scope="application" class="aa.ExchangeBean" />
 
@@ -18,9 +19,11 @@
     <body>
         <h1>Hello World!</h1>
         <%
+            Connection conn = null;
+            boolean okay = false;
             //test retrieve trader from database
             TraderDAO traderDAO = new TraderDAO();
-            Trader trader = traderDAO.getTraderWithUsername("ptlenguyen");
+            Trader trader = traderDAO.getTraderWithUsername(conn, "ptlenguyen");
             
             //test retrieve stock from database
             StockDAO stockDAO = new StockDAO();

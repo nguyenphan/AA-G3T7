@@ -34,14 +34,14 @@ public class ExchangeBean {
 
         Connection conn = null;
         Statement st = null;
-
+        int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
         boolean okay = false;
         
         while(!okay){
         
             try {
 
-                conn = ConnectionFactory.getInstance().getConnection();
+                conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
                 conn.setAutoCommit(false);
 
                 //TODO: make concurrent
@@ -65,9 +65,10 @@ public class ExchangeBean {
                 //commit changes and release locks
                 conn.commit();
                 okay = true;
+                ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
                 
             } catch (SQLException e) {
-
+                currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
                 //error! rollback!
                 if(conn!=null) conn.rollback();
                 System.err.println(e.getMessage());
@@ -92,13 +93,13 @@ public class ExchangeBean {
     public String getUnfulfilledBidsForDisplay(String stock) throws SQLException {
 
         Connection conn = null;
-        
+        int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
         boolean okay = false;
         while(!okay){
             
             try {
 
-                conn = ConnectionFactory.getInstance().getConnection();
+                conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
                 ArrayList<Bid> unfulfilledBids = BidDAO.getUnfulfilledBidsForStock(conn, stock);
                 StringBuilder returnString = new StringBuilder();
                 for (Bid bid : unfulfilledBids) {
@@ -106,10 +107,11 @@ public class ExchangeBean {
                     returnString.append("<br />");
                 }
                 okay = true;
+                ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
                 return returnString.toString();
 
             } catch (SQLException e) {
-
+                currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
                 e.printStackTrace();
                 return "Sorry, we are unable to retrieve the unfulfilled bids for you now. :(";
 
@@ -133,12 +135,12 @@ public class ExchangeBean {
     public String getUnfulfilledAsks(String stock) throws SQLException {
 
         Connection conn = null;
-        
+        int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
         boolean okay = false;
         while (!okay){
             try {
 
-                conn = ConnectionFactory.getInstance().getConnection();
+                conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
                 ArrayList<Ask> unfulfilledAsks = AskDAO.getUnfulfilledAsksForStock(conn, stock);
 
                 StringBuilder returnString = new StringBuilder();
@@ -148,10 +150,11 @@ public class ExchangeBean {
                 }
                 
                 okay = true;
+                ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
                 return returnString.toString();
 
             } catch (SQLException e) {
-
+                currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
                 e.printStackTrace();
                 return "Sorry, we are unable to retrieve the unfulfilled asks for you now. :(";
 
@@ -185,17 +188,23 @@ public class ExchangeBean {
     public Bid getHighestBid(String stock) throws SQLException {
 
         Connection conn = null;
+        int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
         boolean okay = false;
         while(!okay){
             
             try {
 
-                conn = ConnectionFactory.getInstance().getConnection();
+                conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
+                
+                Bid highestBid = BidDAO.getHighestBidForStock(conn, stock);
+                
                 okay = true;
-                return BidDAO.getHighestBidForStock(conn, stock);
+                
+                ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
+                return highestBid;
 
             } catch (SQLException e) {
-
+                currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
                 System.err.println(e.getMessage());
                 
             } finally {
@@ -228,16 +237,21 @@ public class ExchangeBean {
     public Ask getLowestAsk(String stock) throws SQLException {
 
         Connection conn = null;
+        int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
         boolean okay = false;
         while(!okay){   //keep retrying
             try {
 
-                conn = ConnectionFactory.getInstance().getConnection();
+                conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
+                
+                Ask lowestAsk = AskDAO.getLowestAskForStock(conn, stock);
                 okay = true;
-                return AskDAO.getLowestAskForStock(conn, stock);
+                
+                ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
+                return lowestAsk;
 
             } catch (SQLException e) {
-
+                currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
                 System.err.println(e.getMessage());
 
             } finally {
@@ -259,12 +273,13 @@ public class ExchangeBean {
 
         //start transaction
         Connection conn = null;
+        int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
         boolean okay = false;
         while(!okay){
             
             try {
 
-                conn = ConnectionFactory.getInstance().getConnection();
+                conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
                 conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);   //phantom reads okay, non-repeatable not allowed. we don't want credit value to be changed midway.
                 conn.setAutoCommit(false);
 
@@ -293,10 +308,12 @@ public class ExchangeBean {
                 conn.commit();  //release locks
                 okay = true;
                 
+                ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
+                
                 return sufficientCredit;                
 
             } catch (SQLException e) {
-
+                currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
                 System.err.println(e.getMessage());
                 
             } finally {
@@ -355,13 +372,13 @@ public class ExchangeBean {
     public String getAllCreditRemainingForDisplay() throws SQLException {
 
         Connection conn = null;
-        
+        int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
         boolean okay = false;
         while(!okay){
             
             try {
 
-                conn = ConnectionFactory.getInstance().getConnection();
+                conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
                 String returnString = "";
 
                 ArrayList<Trader> traders = TraderDAO.getAllTraders(conn);
@@ -371,10 +388,13 @@ public class ExchangeBean {
                 }
 
                 okay = true;
+                
+                ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
+                
                 return returnString;
 
             } catch (SQLException e) {
-
+                currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
                 System.err.println(e.getMessage());
 
             } finally {
@@ -421,56 +441,62 @@ public class ExchangeBean {
 
         //matched, create transaction
         if (isMatched) {
-
+            int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
             Connection conn = null;
-            try {
+            boolean okay = false;
+            
+            while (!okay) {                
+                try {
 
-                conn = ConnectionFactory.getInstance().getConnection();
-                conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
-                conn.setAutoCommit(false);
+                    conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
+                    conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+                    conn.setAutoCommit(false);
 
-                //lock ask and bid for update
-                BidDAO.lockForUpdate(conn, newBid);
-                AskDAO.lockForUpdate(conn, lowestAsk);
+                    //lock ask and bid for update
+                    BidDAO.lockForUpdate(conn, newBid);
+                    AskDAO.lockForUpdate(conn, lowestAsk);
 
-                //this is a buying transaction, so transaction price is price of ask
-                MatchedTransaction mt = new MatchedTransaction(newBid, lowestAsk, newBid.getDate(), lowestAsk.getPrice());
-                MatchedTransactionDAO.add(conn, mt);  //transaction id will be generated here
+                    //this is a buying transaction, so transaction price is price of ask
+                    MatchedTransaction mt = new MatchedTransaction(newBid, lowestAsk, newBid.getDate(), lowestAsk.getPrice());
+                    MatchedTransactionDAO.add(conn, mt);  //transaction id will be generated here
 
-                //TODO: log transaction, make concurrent
-                logMatchedTransactions();
+                    //TODO: log transaction, make concurrent
+                    logMatchedTransactions();
 
-                //TODO: send to back office, make concurrent
+                    //TODO: send to back office, make concurrent
 
 
-                //update latest price
-                updateLatestPrice(mt);
+                    //update latest price
+                    updateLatestPrice(mt);
 
-                //update transaction id in bid and ask, and save to database
-                newBid.setTransactionId(mt.getTransactionId());
-                lowestAsk.setTransactionID(mt.getTransactionId());
-                BidDAO.update(conn, newBid);
-                AskDAO.update(conn, lowestAsk);
+                    //update transaction id in bid and ask, and save to database
+                    newBid.setTransactionId(mt.getTransactionId());
+                    lowestAsk.setTransactionID(mt.getTransactionId());
+                    BidDAO.update(conn, newBid);
+                    AskDAO.update(conn, lowestAsk);
 
-                //finished transaction, release locks
-                conn.commit();
+                    //finished transaction, release locks
+                    conn.commit();
+                    okay = true;
+                    ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
+                } catch (SQLException e) {
+                    currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
+                    e.printStackTrace();
 
-            } catch (SQLException e) {
+                    //error! rollback.
+                    if (conn != null) {
+                        conn.rollback();
+                    }
 
-                e.printStackTrace();
+                } finally {
 
-                //error! rollback.
-                if (conn != null) {
-                    conn.rollback();
+                    if (conn != null) {
+                        conn.close();
+                    }
+
                 }
-
-            } finally {
-
-                if (conn != null) {
-                    conn.close();
-                }
-
             }
+            
         }
 
         //acknowledge bid, even if match failed.
@@ -502,53 +528,58 @@ public class ExchangeBean {
         if (isMatched) {
 
             Connection conn = null;
+            int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
+            boolean okay = false;
+            
+            while (!okay) {                
+                try {
 
-            try {
+                    conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
+                    conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+                    conn.setAutoCommit(false);
 
-                conn = ConnectionFactory.getInstance().getConnection();
-                conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
-                conn.setAutoCommit(false);
+                    //lock ask and bid for update
+                    BidDAO.lockForUpdate(conn, highestBid);
+                    AskDAO.lockForUpdate(conn, newAsk);
 
-                //lock ask and bid for update
-                BidDAO.lockForUpdate(conn, highestBid);
-                AskDAO.lockForUpdate(conn, newAsk);
+                    //create transaction and save in database
+                    //this is a selling transaction, so transaction price is the price of bid
+                    MatchedTransaction mt = new MatchedTransaction(highestBid, newAsk, newAsk.getDate(), highestBid.getPrice());
+                    MatchedTransactionDAO.add(conn, mt);    //transactionID will also be generated at the same time.
 
-                //create transaction and save in database
-                //this is a selling transaction, so transaction price is the price of bid
-                MatchedTransaction mt = new MatchedTransaction(highestBid, newAsk, newAsk.getDate(), highestBid.getPrice());
-                MatchedTransactionDAO.add(conn, mt);    //transactionID will also be generated at the same time.
+                    //TODO: log transaction, make concurrent
+                    logMatchedTransactions();
 
-                //TODO: log transaction, make concurrent
-                logMatchedTransactions();
+                    //TODO: send to back office, make concurrent
 
-                //TODO: send to back office, make concurrent
+                    //update latest price
+                    updateLatestPrice(mt);
 
-                //update latest price
-                updateLatestPrice(mt);
+                    //update transaction id in bid and ask, and save to database
+                    highestBid.setTransactionId(mt.getTransactionId());
+                    newAsk.setTransactionID(mt.getTransactionId());
+                    BidDAO.update(conn, highestBid);
+                    AskDAO.update(conn, newAsk);
 
-                //update transaction id in bid and ask, and save to database
-                highestBid.setTransactionId(mt.getTransactionId());
-                newAsk.setTransactionID(mt.getTransactionId());
-                BidDAO.update(conn, highestBid);
-                AskDAO.update(conn, newAsk);
+                    //finished, release locks
+                    conn.commit();
+                    okay = true;
+                    ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
+                } catch (SQLException e) {
+                    currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
+                    e.printStackTrace();
 
-                //finished, release locks
-                conn.commit();
+                    if (conn != null) {
+                        conn.rollback();
+                    }
 
-            } catch (SQLException e) {
+                } finally {
 
-                e.printStackTrace();
+                    if (conn != null) {
+                        conn.close();
+                    }
 
-                if (conn != null) {
-                    conn.rollback();
                 }
-
-            } finally {
-
-                if (conn != null) {
-                    conn.close();
-                }
-
             }
 
         }

@@ -61,19 +61,25 @@ public class CheckMatchOperation implements Callable<Object[]> {
 
     }
 
-    public Ask getLowestAsk(String stock) throws SQLException {
+    private Ask getLowestAsk(String stock) throws SQLException {
 
         Connection conn = null;
+        int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
         boolean okay = false;
         while(!okay){
             try {
 
-                conn = ConnectionFactory.getInstance().getConnection();
+                conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
+                
+                Ask returnAsk = AskDAO.getLowestAskForStock(conn, stock);
+                
                 okay = true;
-                return AskDAO.getLowestAskForStock(conn, stock);
-
+                ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
+                
+                return returnAsk;
+                
             } catch (SQLException e) {
-
+                currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
                 System.err.println(e.getMessage());
                 
             } finally {
@@ -91,17 +97,22 @@ public class CheckMatchOperation implements Callable<Object[]> {
     public Bid getHighestBid(String stock) throws SQLException {
 
         Connection conn = null;
-        
+        int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
         boolean okay = false;
         while(!okay){
             try {
 
-                conn = ConnectionFactory.getInstance().getConnection();
+                conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
+                
+                Bid returnBid = BidDAO.getHighestBidForStock(conn, stock);
                 okay = true;
-                return BidDAO.getHighestBidForStock(conn, stock);
+                
+                ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
+                
+                return returnBid;
 
             } catch (SQLException e) {
-
+                currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
                 System.err.println(e.getMessage());
                 
             } finally {

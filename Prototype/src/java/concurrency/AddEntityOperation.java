@@ -24,14 +24,14 @@ public class AddEntityOperation implements Callable<Object[]> {
     public Object[] call() throws SQLException {
         
         Connection conn = null;
-        
+        int currentConnectionIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
         boolean okay = false;
         
         while(!okay){
 
             try{
-
-                conn = ConnectionFactory.getInstance().getConnection();
+                
+                conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentConnectionIndex);
                 conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);  //inserting stuff, use range locks
                 conn.setAutoCommit(false);
 
@@ -47,9 +47,10 @@ public class AddEntityOperation implements Callable<Object[]> {
 
                 okay = true;
                 conn.commit();  //release lock
+                ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentConnectionIndex);
 
             }catch(SQLException e){
-
+                currentConnectionIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentConnectionIndex);
                 System.err.println(e.getMessage());
 
             }finally{
