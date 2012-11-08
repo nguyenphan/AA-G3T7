@@ -26,7 +26,7 @@ public class MatchedTransaction {
     public MatchedTransaction(int transactionId, int bidID, int askID, long date, int price, boolean sent) {
         this.transactionId = transactionId;
         this.bid = new Bid();
-        bid.setBidId(price);
+        bid.setBidId(bidID);
         this.ask = new Ask();
         ask.setAskId(askID);
         this.date = new Date(date);
