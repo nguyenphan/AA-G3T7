@@ -50,6 +50,43 @@ public class AskDAO {
         }
     }
 
+    public static Ask getAsk(Connection conn, int askID) throws SQLException {
+
+        PreparedStatement ptmt = null;
+        String query = "SELECT * FROM ask "
+                + "WHERE askID=?";
+
+        try {
+
+            ptmt = conn.prepareStatement(query);
+            ptmt.setInt(1,askID);
+            ResultSet resultSet = ptmt.executeQuery();
+
+            while (resultSet.next()) {
+                return new Ask(resultSet.getInt("askID"),
+                        resultSet.getString("username"),
+                        resultSet.getString("stockName"),
+                        resultSet.getInt("price"),
+                        resultSet.getLong("order_date"),
+                        resultSet.getInt("transactionID"));
+            }
+
+        } catch (SQLException e) {
+
+            throw e;    //pass back to caller
+
+        } finally {
+
+            //release resources
+            if (ptmt != null) {
+                ptmt.close();
+            }
+        }
+
+        return null;
+
+    }
+    
     public static ArrayList<Ask> getUnfulfilledAsksForStock(Connection conn, String stockName) throws SQLException {
 
         ArrayList unfulfilledAsks = new ArrayList();

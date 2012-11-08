@@ -12,6 +12,9 @@ public class Bid {
     private long time;
     private int transactionId;
 
+    // default constructor
+    public Bid(){}
+    
     // constructor
     public Bid(String stock, int price, String userId) {
         this.stock = stock;

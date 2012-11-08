@@ -59,6 +59,10 @@ public class MatchedTransactionDAO {
             while (resultSet.next()) {
                 MatchedTransaction mt = new MatchedTransaction(
                         resultSet.getInt("transactionID"),
+                        resultSet.getInt("bidID"),
+                        resultSet.getInt("askID"),
+                        resultSet.getLong("trans_date"),
+                        resultSet.getInt("price"),
                         resultSet.getBoolean("sent_backoffice"));
                 
                 unsentMT.add(mt);
@@ -93,8 +97,12 @@ public class MatchedTransactionDAO {
             ResultSet resultSet = ptmt.executeQuery();
             resultSet.next();
             return new MatchedTransaction(
-                    resultSet.getInt("transactionID"),
-                    resultSet.getBoolean("sent_backoffice"));
+                        resultSet.getInt("transactionID"),
+                        resultSet.getInt("bidID"),
+                        resultSet.getInt("askID"),
+                        resultSet.getLong("trans_date"),
+                        resultSet.getInt("price"),
+                        resultSet.getBoolean("sent_backoffice"));
             
         } catch (SQLException e) {
 

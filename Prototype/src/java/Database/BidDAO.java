@@ -43,6 +43,43 @@ public class BidDAO {
         }
     }
 
+    public static Bid getBid(Connection conn, int bidID) throws SQLException {
+
+        PreparedStatement ptmt = null;
+        String query = "SELECT * FROM bid "
+                + "WHERE bidID=?";
+
+        try {
+
+            ptmt = conn.prepareStatement(query);
+            ptmt.setInt(1,bidID);
+            ResultSet resultSet = ptmt.executeQuery();
+
+            while (resultSet.next()) {
+                return new Bid(resultSet.getInt("bidID"),
+                        resultSet.getString("username"),
+                        resultSet.getString("stockName"),
+                        resultSet.getInt("price"),
+                        resultSet.getLong("order_date"),
+                        resultSet.getInt("transactionID"));
+            }
+
+        } catch (SQLException e) {
+
+            throw e;    //pass back to caller
+
+        } finally {
+
+            //release resources
+            if (ptmt != null) {
+                ptmt.close();
+            }
+        }
+
+        return null;
+
+    }
+    
     public static ArrayList<Bid> getUnfulfilledBidsForStock(Connection conn, String stockName) throws SQLException {
 
         PreparedStatement ptmt = null;

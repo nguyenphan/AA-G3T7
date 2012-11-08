@@ -21,13 +21,19 @@ public class MatchedTransaction {
         this.price = p;
         this.sent = false;
     }
-    
-    // constructor for existing match
-    public MatchedTransaction(int transactionID, boolean s) {
-        this.transactionId = transactionID;
-        this.sent = s;
-    }
 
+    // constructor for existing match
+    public MatchedTransaction(int transactionId, int bidID, int askID, long date, int price, boolean sent) {
+        this.transactionId = transactionId;
+        this.bid = new Bid();
+        bid.setBidId(price);
+        this.ask = new Ask();
+        ask.setAskId(askID);
+        this.date = new Date(date);
+        this.price = price;
+        this.sent = sent;
+    }
+    
     // getters
     public int getTransactionId() {
         return transactionId;
@@ -64,8 +70,16 @@ public class MatchedTransaction {
     public boolean getSentToBackOffice(){
         return sent;
     }
-    
+
     //setters
+    public void setBid(Bid bid) {
+        this.bid = bid;
+    }
+
+    public void setAsk(Ask ask) {
+        this.ask = ask;
+    }
+    
     public void setTransactionId(int transactionId) {
         this.transactionId = transactionId;
     }
@@ -76,6 +90,6 @@ public class MatchedTransaction {
     
     @Override
     public String toString() {
-        return "MatchedTransaction{" + "bid=" + bid + ", ask=" + ask + ", date=" + date + ", price=" + price + '}';
+        return "stock:"+bid.getStock()+", amt:"+price+", bidder userId:"+bid.getUserId()+", seller userId:"+ask.getUserId()+", date:" + getDate();
     }
 }

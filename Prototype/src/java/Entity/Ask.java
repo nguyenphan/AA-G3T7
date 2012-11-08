@@ -12,6 +12,9 @@ public class Ask {
   private int transactionID;
   private long time;
 
+  //default constructor
+  public Ask(){}
+  
   // constructor
   public Ask(String stock, int price, String userId) {
     this.stock = stock;
