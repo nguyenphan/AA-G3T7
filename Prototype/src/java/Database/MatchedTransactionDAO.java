@@ -83,17 +83,17 @@ public class MatchedTransactionDAO {
         return unsentMT;
     }
     
-    public static MatchedTransaction lockForUpdate(Connection conn, MatchedTransaction mt) throws SQLException {
+    public static MatchedTransaction lockUnsentLimitOneForUpdate(Connection conn) throws SQLException {
 
         PreparedStatement ptmt = null;
         String query = "SELECT * FROM stock_transaction "
-                + "WHERE transactionID=? "
-                + "FOR UPDATE";
+                + "WHERE sent_backoffice=? "
+                + "LIMIT 1 FOR UPDATE";
 
         try {
 
             ptmt = conn.prepareStatement(query);
-            ptmt.setInt(1, mt.getTransactionId());
+            ptmt.setBoolean(1, false);
             ResultSet resultSet = ptmt.executeQuery();
             resultSet.next();
             return new MatchedTransaction(
