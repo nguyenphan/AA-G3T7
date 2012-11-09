@@ -59,13 +59,13 @@ public class MasterBOSender {
                     sender.detectBackOffice();
                 } else {
                     boolean random2Reached = false;
-                    ipObject = InetAddress.getByName(randomAddress1);
+                    ipObject = InetAddress.getByName(randomAddress2);
                     if (random2Reached) {
                         System.out.println("Master is in control...");
                         sender.detectBackOffice();
                     } else {
                         boolean random3Reached = false;
-                        ipObject = InetAddress.getByName(randomAddress1);
+                        ipObject = InetAddress.getByName(randomAddress3);
                         if (random3Reached) {
                             System.out.println("Master is in control...");
                             sender.detectBackOffice();
@@ -132,68 +132,32 @@ public class MasterBOSender {
     }
 
     public void FetchLogs() throws SQLException {
-        ArrayList<String> logList = new ArrayList<String>();
+       
+        ConnectionFactory cf = ConnectionFactory.getInstance();
+        int currentSQLStringIndex = cf.getCurrentSQLStringIndex();
+        
         Connection conn = null;
-        ConnectionFactory conFact = ConnectionFactory.getInstance();
-
-        int currentSQLStringIndex = conFact.getCurrentSQLStringIndex();
-        try {
-
-            conn = conFact.getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
-            conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+        try{
+            conn = cf.getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
             conn.setAutoCommit(false);
 
-            //fetch all logs
-            ArrayList<MatchedTransaction> transList = MatchedTransactionDAO.getUnsentMatchedTransactions(conn);
-            for (MatchedTransaction tmpLog : transList) {
-
-                MatchedTransaction mtFromDB = null;
-                //lock row
-                try {
-                    mtFromDB = MatchedTransactionDAO.lockForUpdate(conn, tmpLog);
-                } catch (SQLException e) { //match is being locked by another thread, continue
-                    continue;
-                }
-
-                //double check whether another thread has sendt the log.
-                if (!mtFromDB.getSentToBackOffice()) {
-
-                    Bid b = BidDAO.getBid(conn, mtFromDB.getBidID());
-                    Ask a = AskDAO.getAsk(conn, mtFromDB.getAskID());
-                    tmpLog.setBid(b);
-                    tmpLog.setAsk(a);
-                    
-                    //send to back office
-                    if (sendToBackOffice(tmpLog.toString())) {
-                        //update flag if sending successful
-                        tmpLog.setSendToBackOffice(true);
-                        MatchedTransactionDAO.updateMatchedTransactions(conn, tmpLog);
-                        System.out.println();
-
-                    } else {
-                        System.out.println("");
-                    }
-                }
+            MatchedTransaction mt = MatchedTransactionDAO.lockUnsentLimitOneForUpdate(conn);
+            mt.setAsk(AskDAO.getAsk(conn, mt.getAskID()));
+            mt.setBid(BidDAO.getBid(conn, mt.getBidID()));
+            
+            //send to back office
+            if(sendToBackOffice(mt.toString())){
+                //update flag in database
+                mt.setSendToBackOffice(true);
+                MatchedTransactionDAO.updateMatchedTransactions(conn, mt);
             }
-            //finished transaction, release locks
+                
             conn.commit();
-
-            conFact.confirmWorkingConnectionStringIndex(currentSQLStringIndex);
-
-        } catch (SQLException e) {
-            currentSQLStringIndex = conFact.anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
-            e.printStackTrace();
-            //error! rollback.
-            if (conn != null) {
-                conn.rollback();
-            }
-
-        } finally {
-
-            if (conn != null) {
-                conn.close();
-            }
-
+            
+        }catch(SQLException e){
+            
+        }finally{
+            if(conn!=null) conn.close();
         }
 
     }
