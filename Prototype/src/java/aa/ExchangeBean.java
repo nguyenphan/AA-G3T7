@@ -17,14 +17,9 @@ import log.RejectLogProducer;
 
 public class ExchangeBean {
 
-    // location of log files - change if necessary
-    private final String MATCH_LOG_FILE = "c:\\temp\\matched.log";
-    private final String REJECTED_BUY_ORDERS_LOG_FILE = "c:\\temp\\rejected.log";
     // used to calculate remaining credit available for buyers
     private final int DAILY_CREDIT_LIMIT_FOR_BUYERS = 1000000;
-    // used to keep track of all matched transactions (asks/bids) in the system
-    // matchedTransactions is cleaned once the records are written to the log file successfully
-    private ArrayList<MatchedTransaction> matchedTransactions = new ArrayList<MatchedTransaction>();
+    
     // keeps track of the latest price for each of the 3 stocks
     private int latestPriceForSmu = -1;
     private int latestPriceForNus = -1;
@@ -296,7 +291,7 @@ public class ExchangeBean {
                 if (totalPriceOfBid > trader.getCredit()) {
 
                     //insufficient, log failure
-                    logRejectedBuyOrder(b);
+                    //logRejectedBuyOrder(b);
 
                 } else {
 
@@ -333,44 +328,17 @@ public class ExchangeBean {
     // call this to append all rejected buy orders to log file
     // TODO: Concurrency Lock
     private void logRejectedBuyOrder(Bid b) {
-        try {
             RejectLogProducer producer = new RejectLogProducer();
             producer.sendMessage(b.toString());
-            PrintWriter outFile = new PrintWriter(new FileWriter(REJECTED_BUY_ORDERS_LOG_FILE, true));
-            outFile.append(b.toString() + "\n");
-            outFile.close();
-        } catch (IOException e) {
-            // Think about what should happen here...
-            System.out.println("IO EXCEPTIOn: Cannot write to file");
-            e.printStackTrace();
-        } catch (Exception e) {
-            // Think about what should happen here...
-            System.out.println("EXCEPTION: Cannot write to file");
-            e.printStackTrace();
-        }
     }
 
     // call this to append all matched transactions in matchedTransactions to log file and clear matchedTransactions
     // TODO: Concurrency Lock
     private void logMatchedTransactions(String matchedTransaction) {
-        System.out.println(matchedTransaction);
-        try {
-            PrintWriter outFile = new PrintWriter(new FileWriter(MATCH_LOG_FILE, true));
-            outFile.append(matchedTransaction + "\n");
-            //send log to logConsumer
-            MatchLogProducer producer = new MatchLogProducer();
-            producer.sendMessage(matchedTransaction);
-            
-            outFile.close();
-        } catch (IOException e) {
-            // Think about what should happen here...
-            System.out.println("IO EXCEPTIOn: Cannot write to file");
-            e.printStackTrace();
-        } catch (Exception e) {
-            // Think about what should happen here...
-            System.out.println("EXCEPTION: Cannot write to file");
-            e.printStackTrace();
-        }
+        //send log to logConsumer
+        MatchLogProducer producer = new MatchLogProducer();
+        producer.sendMessage(matchedTransaction);
+
     }
 
     // returns a string of HTML table rows code containing the list of user IDs and their remaining credits
@@ -466,12 +434,7 @@ public class ExchangeBean {
                     MatchedTransaction mt = new MatchedTransaction(newBid, lowestAsk, newBid.getDate(), lowestAsk.getPrice());
                     MatchedTransactionDAO.add(conn, mt);  //transaction id will be generated here
 
-                    //TODO: log transaction, make concurrent
-                    logMatchedTransactions(mt.toString());
-
-                    //TODO: send to back office, make concurrent
-
-
+                   
                     //update latest price
                     updateLatestPrice(mt);
 
@@ -485,6 +448,10 @@ public class ExchangeBean {
                     conn.commit();
                     okay = true;
                     ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
+                
+                    //TODO: log transaction, make concurrent
+                    logMatchedTransactions(mt.toString());
+
                 } catch (SQLException e) {
                     currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
                     e.printStackTrace();
@@ -553,11 +520,6 @@ public class ExchangeBean {
                     MatchedTransaction mt = new MatchedTransaction(highestBid, newAsk, newAsk.getDate(), highestBid.getPrice());
                     MatchedTransactionDAO.add(conn, mt);    //transactionID will also be generated at the same time.
 
-                    //TODO: log transaction, make concurrent
-                    logMatchedTransactions(mt.toString());
-
-                    //TODO: send to back office, make concurrent
-
                     //update latest price
                     updateLatestPrice(mt);
 
@@ -571,6 +533,10 @@ public class ExchangeBean {
                     conn.commit();
                     okay = true;
                     ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
+                
+                    //TODO: log transaction, make concurrent
+                    logMatchedTransactions(mt.toString());
+
                 } catch (SQLException e) {
                     currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
                     e.printStackTrace();
@@ -623,98 +589,4 @@ public class ExchangeBean {
         return -1; // no such stock
     }
 
-    public boolean sendToBackOffice(String txnDescription) throws SQLException{
-        
-        int currentSQLStringIndex = ConnectionFactory.getInstance().getCurrentSQLStringIndex();
-        
-        Connection conn = null;
-        
-        boolean okay = false;
-        while(!okay){
-            
-            try{
-                
-                conn = ConnectionFactory.getInstance().getConnectionForCurrentSQLStringIndex(currentSQLStringIndex);
-                conn.setAutoCommit(false);
-                
-                ArrayList<MatchedTransaction> unsentMTs = MatchedTransactionDAO.getUnsentMatchedTransactions(conn); //no locks
-                
-                for(MatchedTransaction mt: unsentMTs){
-                    
-                    MatchedTransaction mtFromDB = null;
-                    
-                    //lock row
-                    try{
-                        
-                        mtFromDB = MatchedTransactionDAO.lockForUpdate(conn, mt);
-                    
-                    }catch(SQLException e){ //match is being locked by another thread, continue
-                    
-                        continue;
-                    
-                    }
-                    
-                    //send to back office
-                    if(!mtFromDB.getSentToBackOffice()){    //check again in case match is already sent by another thread
-                    
-                        //send to back office-----
-                        
-                        //------------------------
-                        
-                        mt.setSendToBackOffice(true);
-                        
-                        //update database
-                        MatchedTransactionDAO.updateMatchedTransactions(conn, mt);
-                    
-                    }
-                    
-                    //release locks
-                    conn.commit();
-                    
-                }
-                
-                //everything went well, no need to retry
-                okay = true;
-                ConnectionFactory.getInstance().confirmWorkingConnectionStringIndex(currentSQLStringIndex);
-            
-            }catch(SQLException e){
-            
-                currentSQLStringIndex = ConnectionFactory.getInstance().anotherConnectionStringIndexDifferentFromIndex(currentSQLStringIndex);
-                System.err.println(e.getMessage());
-                
-            }finally{
-                
-                //release connection
-                if(conn!=null) conn.close();
-            
-            }
-            
-        }
-        
-        
-        
-        /*
-        
-        
-        
-        aa.Service service = new aa.Service();
-        boolean status = false;
-
-        try {
-            // create new instances of remote Service objects
-            aa.ServiceSoap port = service.getServiceSoap();
-
-            // invoke the remote method by calling port.processTransaction().
-            // processTransaction() will return false if the teamID &/or password is wrong
-            // it will return true if the web service is correctly called
-            status = port.processTransaction("G3T7", "lime", txnDescription);
-            return status;
-        } catch (Exception ex) {
-            // may come here if a time out or any other exception occurs
-            // what should you do here??
-        }
-        */
-        
-        return false; // failure due to exception
-    }
 }
