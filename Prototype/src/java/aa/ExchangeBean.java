@@ -291,7 +291,7 @@ public class ExchangeBean {
                 if (totalPriceOfBid > trader.getCredit()) {
 
                     //insufficient, log failure
-                    //logRejectedBuyOrder(b);
+                    logRejectedBuyOrder(b);
 
                 } else {
 
